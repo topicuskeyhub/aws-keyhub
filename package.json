@@ -1,0 +1,35 @@
+{
+  "name": "aws-keyhub",
+  "version": "1.0.0",
+  "description": "AWS CLI login helper for Topicus KeyHub.",
+  "main": "cli.js",
+  "bin": {
+    "aws-keyhub": "./cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vincent Heet <vincent.heet@topicus.nl>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/topicuskeyhub/aws-keyhub"
+  },
+  "engines": {
+    "node": ">=8.9.0"
+  },
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/topicuskeyhub/aws-keyhub/issues"
+  },
+  "homepage": "https://github.com/topicuskeyhub/aws-keyhub",
+  "dependencies": {
+    "atob": "2.1.2",
+    "commander": "2.19.0",
+    "configparser": "0.2.6",
+    "configstore": "4.0.0",
+    "fast-xml-parser": "3.12.5",
+    "inquirer": "6.2.0",
+    "keytar": "4.3.0",
+    "puppeteer": "1.6.2"
+  }
+}
