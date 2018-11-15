@@ -19,6 +19,7 @@ const configure = require('./configure.js');
 const saml = require('./utils/SamlUtil.js');
 const AwsCliUtil = require('./utils/AwsCliUtil.js');
 const os = require('os');
+const path = require('path');
 let samlPayloadIntercepted = false;
 
 module.exports = {
@@ -34,7 +35,7 @@ module.exports = {
         }
 
         const browser = await puppeteer.launch({
-            userDataDir: os.homedir() + '/.aws-keyhub/puppeteer_profile'
+            userDataDir: os.homedir() + path.sep + '.aws-keyhub' + path.sep + 'puppeteer_profile'
         });
 
         let page;

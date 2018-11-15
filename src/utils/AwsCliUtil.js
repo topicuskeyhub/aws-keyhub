@@ -17,35 +17,54 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const ConfigParser = require('configparser');
 const os = require('os');
+const path = require('path');
+const fs = require('fs');
+const AwsSts = require('aws-sdk/clients/sts');
 
 module.exports = {
     async configureWithSamlAssertion(roleArn, principalArn, samlAssertion, duration) {
         let credentials = await assumeRoleWithSaml(roleArn, principalArn, samlAssertion, duration);
-        writeConfigFile(credentials);
+        await writeConfigFile(credentials);
     }
 }
 
 async function assumeRoleWithSaml(roleArn, principalArn, samlAssertion, duration) {
-    try {
-        const { stdout } = await exec('aws sts assume-role-with-saml --duration-seconds=' + duration + ' --role-arn ' + roleArn + ' --principal-arn ' + principalArn + ' --saml-assertion ' + samlAssertion);
-
-        if (stdout.indexOf('AccessKeyId') > -1 && stdout.indexOf('SecretAccessKey' > -1) && stdout.indexOf('SessionToken') > -1) {
-            const credentials = JSON.parse(stdout).Credentials;
-            return {
-                'accessKeyId': credentials.AccessKeyId,
-                'secretAccessKey': credentials.SecretAccessKey,
-                'sessionToken': credentials.SessionToken
-            };
-        } else {
-            throw new Error('Invalid AWS credentials retrieved.');
-        }
-    } catch (error) {
-        console.log(error);
+    const response = await stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration);
+    if (response !== null) {
+        return {
+            'accessKeyId': response.Credentials.AccessKeyId,
+            'secretAccessKey': response.Credentials.SecretAccessKey,
+            'sessionToken': response.Credentials.SessionToken
+        };
+    } else {
+        throw new Error('Invalid AWS credentials retrieved.');
     }
 }
 
-function writeConfigFile(credentials) {
-    const configFilePath = os.homedir() + '/.aws/credentials';
+function stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration) {
+    var sts = new AwsSts();
+    var params = {
+        PrincipalArn: principalArn,
+        RoleArn: roleArn,
+        SAMLAssertion: samlAssertion,
+        DurationSeconds: duration,
+    };
+
+    return new Promise((resolve, reject) => {
+        sts.assumeRoleWithSAML(params, function (err, data) {
+            if (err) {
+                console.error(err)
+                throw err;
+            }
+            resolve(data);
+        });
+    });
+}
+
+async function writeConfigFile(credentials) {
+    const configFilePath = os.homedir() + path.sep + '.aws' + path.sep + 'credentials';
+    await createFileIfNotExists(configFilePath);
+
     const config = new ConfigParser();
     config.read(configFilePath);
 
@@ -57,4 +76,14 @@ function writeConfigFile(credentials) {
     config.set('keyhub', 'aws_session_token', credentials.sessionToken);
 
     config.write(configFilePath);
+}
+
+function createFileIfNotExists(path) {
+    return new Promise((resolve) => {
+        fs.writeFile(path, '', { flag: 'w' }, (err) => {
+            if (err)
+                throw err;
+            resolve();
+        });
+    });
 }

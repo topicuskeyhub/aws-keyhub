@@ -1,6 +1,6 @@
 {
   "name": "aws-keyhub",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AWS CLI login helper for Topicus KeyHub.",
   "main": "cli.js",
   "bin": {
@@ -24,6 +24,7 @@
   "homepage": "https://github.com/topicuskeyhub/aws-keyhub",
   "dependencies": {
     "atob": "2.1.2",
+    "aws-sdk": "2.355.0",
     "commander": "2.19.0",
     "configparser": "0.2.6",
     "configstore": "4.0.0",

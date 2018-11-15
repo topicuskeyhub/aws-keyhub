@@ -16,6 +16,7 @@
 const inquirer = require('inquirer');
 const keytar = require('keytar');
 const os = require('os');
+const path = require('path');
 const Configstore = require('configstore');
 const config = new Configstore("aws-keyhub", {
     "keyhub": {
@@ -25,7 +26,7 @@ const config = new Configstore("aws-keyhub", {
     "aws": {
         "assumeDuration": ""
     }
-}, { 'configPath': os.homedir() + '/.aws-keyhub/config.json' });
+}, { 'configPath': os.homedir() + path.sep + '.aws-keyhub' + path.sep + 'config.json' });
 
 module.exports = {
 

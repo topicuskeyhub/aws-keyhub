@@ -32,7 +32,7 @@ For optimal usage of this tool your KeyHub instance needs to be configured to se
 // Function returns a list of descriptive objects based on a UUID match
 var mapping = new Map();
 mapping.set('aaabbbcc-2222-aaaa-3333-fffff0000000', {
-    'account' : 'topicus-shared-sandbox',
+    'account' : 'example-account-name',
     'role' : 'inzicht',
     'arn' : 'arn:aws:iam::123456789012:role/MyCustomRole,arn:aws:iam::123456789012:saml-provider/keyhub'
 });
