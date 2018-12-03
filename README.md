@@ -8,12 +8,6 @@ CLI login helper for the [AWS CLI](https://aws.amazon.com/cli/) when using SAML 
 #### Release version
 Run `npm install -g aws-keyhub`
 
-#### Development version
-Installing the development version is easy.
-1. Checkout this git repository
-2. Change current working directory to the aws-keyhub directory
-3. Run `npm link`
-
 ### Configuration
 To set-up the aws-keyhub tool we need the KeyHub username, password and url. Configuring these properties can be done by running with the `-c` param: `aws-keyhub -c`
 *Note: the KeyHub url should be the SAML IDP initiated-flow url. It's similar to: https://keyhub.domain.tld/login/initiate?client=urn:amazon:webservices*

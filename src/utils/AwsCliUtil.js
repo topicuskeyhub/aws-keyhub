@@ -80,7 +80,7 @@ async function writeConfigFile(credentials) {
 
 function createFileIfNotExists(path) {
     return new Promise((resolve) => {
-        fs.writeFile(path, '', { flag: 'w' }, (err) => {
+        fs.writeFile(path, '', { flag: 'a' }, (err) => {
             if (err)
                 throw err;
             resolve();
