@@ -170,7 +170,7 @@ async function letUserChooseAwsRole(rolesAndPrincipals) {
 }
 
 async function exit(browser, page) {
-    if (page) {
+    if (page && !page.isClosed()) {
         await page.close();
     }
     await browser.close()
