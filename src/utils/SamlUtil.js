@@ -50,7 +50,7 @@ module.exports = {
 }
 
 function processAttributeRole(element, rolesAndPrincipals) {
-
+    element['saml2:AttributeValue'] = putObjectInArrayIfPlain(element['saml2:AttributeValue']);
     element['saml2:AttributeValue'].forEach(attribute => {
         const roleAndPrincipal = attribute['#text'];
         let role, principal;
@@ -76,7 +76,7 @@ function processAttributeRole(element, rolesAndPrincipals) {
 }
 
 function processAttributeKeyhubGroup(element, rolesAndPrincipals) {
-
+    element['saml2:AttributeValue'] = putObjectInArrayIfPlain(element['saml2:AttributeValue']);
     element['saml2:AttributeValue'].forEach(attribute => {
         let parsedJson = JSON.parse(attribute['#text']);
         const keyHubGroupDescription = parsedJson.description;
@@ -91,4 +91,12 @@ function processAttributeKeyhubGroup(element, rolesAndPrincipals) {
     });
 
     return rolesAndPrincipals;
+}
+
+function putObjectInArrayIfPlain(element) {
+    if (!Array.isArray(element)) {
+        element = [element];
+    }
+
+    return element;
 }
