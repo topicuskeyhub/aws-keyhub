@@ -24,13 +24,20 @@ let samlPayloadIntercepted = false;
 
 module.exports = {
 
-    login: async function () {
+    login: async function (options) {
         try {
             await configure.hasValidConfiguration();
         } catch (error) {
             console.error('No valid configuration found.');
             console.error(error.message);
             console.error('Please run `aws-keyhub -c` first.');
+            process.exit(1);
+        }
+
+        try {
+            await AwsCliUtil.checkIfConfigFileExists();
+        } catch (error) {
+            console.error(error.message);
             process.exit(1);
         }
 
@@ -44,9 +51,11 @@ module.exports = {
             page = await browser.newPage();
             page.setDefaultNavigationTimeout(15000);
 
+            let preselectedRoleArn = options.roleArn;
+
             await page.setRequestInterception(true);
             page.on('request', async (interceptedRequest) => {
-                await interceptSamlPayloadForAWS(interceptedRequest, page, browser);
+                await interceptSamlPayloadForAWS(interceptedRequest, page, browser, preselectedRoleArn);
             });
 
             await openKeyHub(page, configure.getUrl());
@@ -65,7 +74,7 @@ module.exports = {
         }
     }
 
-}
+};
 
 async function openKeyHub(page, keyHubUrl) {
     try {
@@ -126,7 +135,7 @@ async function askAndFillVerificationCodeIfFieldExists(page) {
     }
 }
 
-async function interceptSamlPayloadForAWS(interceptedRequest, page, browser) {
+async function interceptSamlPayloadForAWS(interceptedRequest, page, browser, preselectedRoleArn) {
     if (interceptedRequest._url === 'https://signin.aws.amazon.com/saml') {
         samlPayloadIntercepted = true;
 
@@ -134,16 +143,37 @@ async function interceptSamlPayloadForAWS(interceptedRequest, page, browser) {
         const samlResponseBase64 = saml.getBase64SamlResponse(samlResponse);
         const samlResponseDecoded = saml.getDecodedSamlResponse(samlResponseBase64);
         const rolesAndPrincipals = saml.getRolesAndPrincipalsFromSamlResponse(samlResponseDecoded);
-        const selectedRoleAndPrincipal = await letUserChooseAwsRole(rolesAndPrincipals);
+
+        let selectedRoleAndPrincipal;
+        if (preselectedRoleArn) {
+            selectedRoleAndPrincipal = returnPreselectedRole(rolesAndPrincipals, preselectedRoleArn);
+            if (typeof selectedRoleAndPrincipal == "undefined") {
+                console.log('Invalid role ARN provided, could not log in.');
+                selectedRoleAndPrincipal = await letUserChooseAwsRole(rolesAndPrincipals);
+            }
+        } else {
+            selectedRoleAndPrincipal = await letUserChooseAwsRole(rolesAndPrincipals);
+        }
 
         await AwsCliUtil.configureWithSamlAssertion(selectedRoleAndPrincipal.role, selectedRoleAndPrincipal.principal, samlResponseBase64, configure.getAssumeDuration());
         console.log('Successfully logged in, use the profile `keyhub`. (export AWS_PROFILE=keyhub / set AWS_PROFILE=keyhub)');
 
         await interceptedRequest.abort();
         await exit(browser, page);
+
     } else {
         await interceptedRequest.continue();
     }
+}
+
+function returnPreselectedRole(rolesAndPrincipals, preselectedRoleArn) {
+    let selectedRoleAndPrincipal;
+    rolesAndPrincipals.some((roleAndPrincipal) => {
+        if (roleAndPrincipal.role === preselectedRoleArn)
+            return selectedRoleAndPrincipal = roleAndPrincipal;
+    });
+
+    return selectedRoleAndPrincipal;
 }
 
 async function letUserChooseAwsRole(rolesAndPrincipals) {
@@ -154,7 +184,7 @@ async function letUserChooseAwsRole(rolesAndPrincipals) {
             message: 'Choose a role:',
             choices: () => {
                 return rolesAndPrincipals.map(entry => {
-                    return { name: entry.role + ' / ' + entry.description, value: entry.role };
+                    return {name: entry.role + ' / ' + entry.description, value: entry.role};
                 });
             }
         }
@@ -173,6 +203,6 @@ async function exit(browser, page) {
     if (page && !page.isClosed()) {
         await page.close();
     }
-    await browser.close()
+    await browser.close();
     process.exit();
 }

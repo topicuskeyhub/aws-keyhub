@@ -32,7 +32,7 @@ module.exports = {
 
     getRolesAndPrincipalsFromSamlResponse(samlResponseDecoded) {
         let rolesAndPrincipals = new Map();
-        const result = parser.parse(samlResponseDecoded, { ignoreAttributes: false });
+        const result = parser.parse(samlResponseDecoded, {ignoreAttributes: false});
 
         let samlAttributes = result['saml2p:Response']['saml2:Assertion']['saml2:AttributeStatement']['saml2:Attribute'];
         samlAttributes.forEach(async element => {
@@ -68,7 +68,7 @@ function processAttributeRole(element, rolesAndPrincipals) {
             currentValue['principal'] = principal;
             rolesAndPrincipals.set(role, currentValue);
         } else {
-            rolesAndPrincipals.set(role, { 'role': role, 'principal': principal });
+            rolesAndPrincipals.set(role, {'role': role, 'principal': principal});
         }
     });
 
@@ -85,7 +85,7 @@ function processAttributeKeyhubGroup(element, rolesAndPrincipals) {
         keyHubGroupAwsArn.split(',').forEach(roleOrPrincipal => {
             if (roleOrPrincipal.indexOf('role') > -1) {
                 let role = roleOrPrincipal;
-                rolesAndPrincipals.set(role, { 'description': keyHubGroupDescription });
+                rolesAndPrincipals.set(role, {'description': keyHubGroupDescription});
             }
         });
     });

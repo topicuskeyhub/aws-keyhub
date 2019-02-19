@@ -26,7 +26,7 @@ const config = new Configstore("aws-keyhub", {
     "aws": {
         "assumeDuration": ""
     }
-}, { 'configPath': os.homedir() + path.sep + '.aws-keyhub' + path.sep + 'config.json' });
+}, {'configPath': os.homedir() + path.sep + '.aws-keyhub' + path.sep + 'config.json'});
 
 module.exports = {
 

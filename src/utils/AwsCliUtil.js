@@ -25,6 +25,15 @@ module.exports = {
     async configureWithSamlAssertion(roleArn, principalArn, samlAssertion, duration) {
         let credentials = await assumeRoleWithSaml(roleArn, principalArn, samlAssertion, duration);
         await writeConfigFile(credentials);
+    },
+
+    checkIfConfigFileExists() {
+        const configFilePath = os.homedir() + path.sep + '.aws' + path.sep + 'config';
+        try {
+            fs.accessSync(configFilePath, fs.constants.F_OK);
+        } catch (err) {
+            throw new Error('It looks like you have no AWS configuration file.\nPlease run `aws configure` first. You can leave the access key fields empty.');
+        }
     }
 }
 
@@ -53,7 +62,7 @@ function stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration) {
     return new Promise((resolve, reject) => {
         sts.assumeRoleWithSAML(params, function (err, data) {
             if (err) {
-                console.error(err)
+                console.error(err);
                 throw err;
             }
             resolve(data);
@@ -68,8 +77,7 @@ async function writeConfigFile(credentials) {
     const config = new ConfigParser();
     config.read(configFilePath);
 
-    if (!config.hasSection('keyhub'))
-        config.addSection('keyhub')
+    if (!config.hasSection('keyhub')) config.addSection('keyhub');
 
     config.set('keyhub', 'aws_access_key_id', credentials.accessKeyId);
     config.set('keyhub', 'aws_secret_access_key', credentials.secretAccessKey);
@@ -80,7 +88,7 @@ async function writeConfigFile(credentials) {
 
 function createFileIfNotExists(path) {
     return new Promise((resolve) => {
-        fs.writeFile(path, '', { flag: 'a' }, (err) => {
+        fs.writeFile(path, '', {flag: 'a'}, (err) => {
             if (err)
                 throw err;
             resolve();
