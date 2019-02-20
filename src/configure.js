@@ -42,23 +42,25 @@ module.exports = {
 
     hasValidConfiguration: async function () {
         const username = this.getUsername();
+        const errorPrefix = "No valid aws-keyhub configuration found.";
+        const errorSuffix = "Please run `aws-keyhub -c`.";
         if (username === null || username === undefined || username.length < 1) {
-            throw new Error('KeyHub username property is empty.');
+            throw new Error(`${errorPrefix}\nKeyHub username property is empty.\n${errorSuffix}`);
         }
 
         const password = await this.getPassword();
         if (password === null || password === undefined || password.length < 1) {
-            throw new Error('KeyHub password property is empty.');
+            throw new Error(`${errorPrefix}\nKeyHub password property is empty.\n${errorSuffix}`);
         }
 
         const url = this.getUrl();
         if (url === null || url === undefined || url.length < 1) {
-            throw new Error('KeyHub url property is empty.');
+            throw new Error(`${errorPrefix}\nKeyHub url property is empty.\n${errorSuffix}`);
         }
 
         const assumeDuration = this.getAssumeDuration();
         if (assumeDuration === null || assumeDuration === undefined || assumeDuration.length < 1) {
-            throw new Error('AWS assume role duration property is empty.');
+            throw new Error(`${errorPrefix}\nAWS assume role duration property is empty.\n${errorSuffix}`);
         }
 
         return true;

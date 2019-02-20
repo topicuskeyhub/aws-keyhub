@@ -27,14 +27,6 @@ module.exports = {
     login: async function (options) {
         try {
             await configure.hasValidConfiguration();
-        } catch (error) {
-            console.error('No valid configuration found.');
-            console.error(error.message);
-            console.error('Please run `aws-keyhub -c` first.');
-            process.exit(1);
-        }
-
-        try {
             await AwsCliUtil.checkIfConfigFileExists();
         } catch (error) {
             console.error(error.message);
@@ -51,11 +43,14 @@ module.exports = {
             page = await browser.newPage();
             page.setDefaultNavigationTimeout(15000);
 
-            let preselectedRoleArn = options.roleArn;
-
             await page.setRequestInterception(true);
             page.on('request', async (interceptedRequest) => {
-                await interceptSamlPayloadForAWS(interceptedRequest, page, browser, preselectedRoleArn);
+                try {
+                    await interceptSamlPayloadForAWS(interceptedRequest, page, browser, options.roleArn);
+                } catch (error) {
+                    console.error(error.message);
+                    process.exit(1);
+                }
             });
 
             await openKeyHub(page, configure.getUrl());
@@ -144,15 +139,10 @@ async function interceptSamlPayloadForAWS(interceptedRequest, page, browser, pre
         const samlResponseDecoded = saml.getDecodedSamlResponse(samlResponseBase64);
         const rolesAndPrincipals = saml.getRolesAndPrincipalsFromSamlResponse(samlResponseDecoded);
 
-        let selectedRoleAndPrincipal;
-        if (preselectedRoleArn) {
-            selectedRoleAndPrincipal = returnPreselectedRole(rolesAndPrincipals, preselectedRoleArn);
-            if (typeof selectedRoleAndPrincipal == "undefined") {
-                console.log('Invalid role ARN provided, could not log in.');
-                selectedRoleAndPrincipal = await letUserChooseAwsRole(rolesAndPrincipals);
-            }
-        } else {
-            selectedRoleAndPrincipal = await letUserChooseAwsRole(rolesAndPrincipals);
+        const selectedRoleAndPrincipal = await chooseAwsRole(rolesAndPrincipals, preselectedRoleArn);
+
+        if (selectedRoleAndPrincipal === undefined) {
+            throw new Error('Invalid role ARN provided, could not log in.');
         }
 
         await AwsCliUtil.configureWithSamlAssertion(selectedRoleAndPrincipal.role, selectedRoleAndPrincipal.principal, samlResponseBase64, configure.getAssumeDuration());
@@ -166,18 +156,26 @@ async function interceptSamlPayloadForAWS(interceptedRequest, page, browser, pre
     }
 }
 
-function returnPreselectedRole(rolesAndPrincipals, preselectedRoleArn) {
+async function chooseAwsRole(rolesAndPrincipals, preselectedRoleArn) {
+    let selectedRole;
+    if (preselectedRoleArn !== undefined) {
+        selectedRole = preselectedRoleArn;
+    } else {
+        selectedRole = (await askUserForAwsRole(rolesAndPrincipals)).selectedRole;
+    }
+
     let selectedRoleAndPrincipal;
     rolesAndPrincipals.some((roleAndPrincipal) => {
-        if (roleAndPrincipal.role === preselectedRoleArn)
+        if (roleAndPrincipal.role === selectedRole) {
             return selectedRoleAndPrincipal = roleAndPrincipal;
+        }
     });
 
     return selectedRoleAndPrincipal;
 }
 
-async function letUserChooseAwsRole(rolesAndPrincipals) {
-    const answer = await inquirer.prompt([
+async function askUserForAwsRole(rolesAndPrincipals) {
+    return inquirer.prompt([
         {
             type: 'rawlist',
             name: 'selectedRole',
@@ -189,14 +187,6 @@ async function letUserChooseAwsRole(rolesAndPrincipals) {
             }
         }
     ]);
-
-    let selectedRoleAndPrincipal;
-    rolesAndPrincipals.some((roleAndPrincipal) => {
-        if (roleAndPrincipal.role === answer.selectedRole)
-            return selectedRoleAndPrincipal = roleAndPrincipal;
-    });
-
-    return selectedRoleAndPrincipal;
 }
 
 async function exit(browser, page) {

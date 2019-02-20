@@ -14,7 +14,6 @@
 // limitations under the License.
 
 const util = require('util');
-const exec = util.promisify(require('child_process').exec);
 const ConfigParser = require('configparser');
 const os = require('os');
 const path = require('path');
@@ -27,15 +26,15 @@ module.exports = {
         await writeConfigFile(credentials);
     },
 
-    checkIfConfigFileExists() {
+    async checkIfConfigFileExists() {
         const configFilePath = os.homedir() + path.sep + '.aws' + path.sep + 'config';
         try {
-            fs.accessSync(configFilePath, fs.constants.F_OK);
-        } catch (err) {
+            await util.promisify(fs.access)(configFilePath, fs.constants.F_OK);
+        } catch (error) {
             throw new Error('It looks like you have no AWS configuration file.\nPlease run `aws configure` first. You can leave the access key fields empty.');
         }
     }
-}
+};
 
 async function assumeRoleWithSaml(roleArn, principalArn, samlAssertion, duration) {
     const response = await stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration);
@@ -77,7 +76,9 @@ async function writeConfigFile(credentials) {
     const config = new ConfigParser();
     config.read(configFilePath);
 
-    if (!config.hasSection('keyhub')) config.addSection('keyhub');
+    if (!config.hasSection('keyhub')) {
+        config.addSection('keyhub');
+    }
 
     config.set('keyhub', 'aws_access_key_id', credentials.accessKeyId);
     config.set('keyhub', 'aws_secret_access_key', credentials.secretAccessKey);

@@ -1,6 +1,6 @@
 {
   "name": "aws-keyhub",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "AWS CLI login helper for Topicus KeyHub.",
   "main": "cli.js",
   "bin": {
