@@ -1,0 +1,9 @@
+{
+	"keyhub": {
+		"username": "",
+		"url": ""
+	},
+	"aws": {
+		"assumeDuration": ""
+	}
+}

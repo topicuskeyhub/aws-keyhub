@@ -20,16 +20,17 @@ const path = require('path');
 const fs = require('fs');
 const AwsSts = require('aws-sdk/clients/sts');
 
+const AWS_CONFIG_DIR = os.homedir() + path.sep + '.aws' + path.sep;
+
 module.exports = {
     async configureWithSamlAssertion(roleArn, principalArn, samlAssertion, duration) {
         let credentials = await assumeRoleWithSaml(roleArn, principalArn, samlAssertion, duration);
-        await writeConfigFile(credentials);
+        await writeCredentialFile(credentials);
     },
 
     async checkIfConfigFileExists() {
-        const configFilePath = os.homedir() + path.sep + '.aws' + path.sep + 'config';
         try {
-            await util.promisify(fs.access)(configFilePath, fs.constants.F_OK);
+            await util.promisify(fs.access)(AWS_CONFIG_DIR + "config", fs.constants.F_OK);
         } catch (error) {
             throw new Error('It looks like you have no AWS configuration file.\nPlease run `aws configure` first. You can leave the access key fields empty.');
         }
@@ -69,22 +70,22 @@ function stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration) {
     });
 }
 
-async function writeConfigFile(credentials) {
-    const configFilePath = os.homedir() + path.sep + '.aws' + path.sep + 'credentials';
-    await createFileIfNotExists(configFilePath);
+async function writeCredentialFile(credentials) {
+    const credentialFilePath = AWS_CONFIG_DIR + "credentials";
+    await createFileIfNotExists(credentialFilePath);
 
-    const config = new ConfigParser();
-    config.read(configFilePath);
+    const credentialFile = new ConfigParser();
+    credentialFile.read(credentialFilePath);
 
-    if (!config.hasSection('keyhub')) {
-        config.addSection('keyhub');
+    if (!credentialFile.hasSection('keyhub')) {
+        credentialFile.addSection('keyhub');
     }
 
-    config.set('keyhub', 'aws_access_key_id', credentials.accessKeyId);
-    config.set('keyhub', 'aws_secret_access_key', credentials.secretAccessKey);
-    config.set('keyhub', 'aws_session_token', credentials.sessionToken);
+    credentialFile.set('keyhub', 'aws_access_key_id', credentials.accessKeyId);
+    credentialFile.set('keyhub', 'aws_secret_access_key', credentials.secretAccessKey);
+    credentialFile.set('keyhub', 'aws_session_token', credentials.sessionToken);
 
-    config.write(configFilePath);
+    credentialFile.write(credentialFilePath);
 }
 
 function createFileIfNotExists(path) {

@@ -18,8 +18,7 @@ const inquirer = require('inquirer');
 const configure = require('./configure.js');
 const saml = require('./utils/SamlUtil.js');
 const AwsCliUtil = require('./utils/AwsCliUtil.js');
-const os = require('os');
-const path = require('path');
+const KEYHUB_CONFIG_DIR = require('./configure.js').getKeyhubConfigDir();
 let samlPayloadIntercepted = false;
 
 module.exports = {
@@ -34,7 +33,7 @@ module.exports = {
         }
 
         const browser = await puppeteer.launch({
-            userDataDir: os.homedir() + path.sep + '.aws-keyhub' + path.sep + 'puppeteer_profile'
+            userDataDir: KEYHUB_CONFIG_DIR + 'puppeteer_profile/'
         });
 
         let page;
@@ -139,7 +138,7 @@ async function interceptSamlPayloadForAWS(interceptedRequest, page, browser, pre
         const samlResponseDecoded = saml.getDecodedSamlResponse(samlResponseBase64);
         const rolesAndPrincipals = saml.getRolesAndPrincipalsFromSamlResponse(samlResponseDecoded);
 
-        const selectedRoleAndPrincipal = await chooseAwsRole(rolesAndPrincipals, preselectedRoleArn);
+        const selectedRoleAndPrincipal = await selectAwsRole(rolesAndPrincipals, preselectedRoleArn);
 
         if (selectedRoleAndPrincipal === undefined) {
             throw new Error('Invalid role ARN provided, could not log in.');
@@ -156,7 +155,7 @@ async function interceptSamlPayloadForAWS(interceptedRequest, page, browser, pre
     }
 }
 
-async function chooseAwsRole(rolesAndPrincipals, preselectedRoleArn) {
+async function selectAwsRole(rolesAndPrincipals, preselectedRoleArn) {
     let selectedRole;
     if (preselectedRoleArn !== undefined) {
         selectedRole = preselectedRoleArn;

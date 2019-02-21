@@ -18,6 +18,7 @@ const keytar = require('keytar');
 const os = require('os');
 const path = require('path');
 const Configstore = require('configstore');
+const KEYHUB_CONFIG_DIR = os.homedir() + path.sep + '.aws-keyhub' + path.sep;
 const config = new Configstore("aws-keyhub", {
     "keyhub": {
         "username": "",
@@ -26,7 +27,8 @@ const config = new Configstore("aws-keyhub", {
     "aws": {
         "assumeDuration": ""
     }
-}, {'configPath': os.homedir() + path.sep + '.aws-keyhub' + path.sep + 'config.json'});
+}, {'configPath': KEYHUB_CONFIG_DIR + "config.json"});
+
 
 module.exports = {
 
@@ -41,9 +43,10 @@ module.exports = {
     },
 
     hasValidConfiguration: async function () {
-        const username = this.getUsername();
         const errorPrefix = "No valid aws-keyhub configuration found.";
         const errorSuffix = "Please run `aws-keyhub -c`.";
+
+        const username = this.getUsername();
         if (username === null || username === undefined || username.length < 1) {
             throw new Error(`${errorPrefix}\nKeyHub username property is empty.\n${errorSuffix}`);
         }
@@ -80,8 +83,12 @@ module.exports = {
 
     getAssumeDuration: function () {
         return get('aws.assumeDuration');
+    },
+
+    getKeyhubConfigDir: function () {
+        return KEYHUB_CONFIG_DIR;
     }
-}
+};
 
 function get(key) {
     return config.get(key);
