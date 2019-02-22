@@ -13,12 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const constants = require.main.require('./constants.js');
+
 const inquirer = require('inquirer');
 const keytar = require('keytar');
-const os = require('os');
-const path = require('path');
 const Configstore = require('configstore');
-const KEYHUB_CONFIG_DIR = os.homedir() + path.sep + '.aws-keyhub' + path.sep;
 const config = new Configstore("aws-keyhub", {
     "keyhub": {
         "username": "",
@@ -27,7 +26,7 @@ const config = new Configstore("aws-keyhub", {
     "aws": {
         "assumeDuration": ""
     }
-}, {'configPath': KEYHUB_CONFIG_DIR + "config.json"});
+}, {'configPath': constants.PATHS.AWS_KEYHUB.CONFIG});
 
 
 module.exports = {

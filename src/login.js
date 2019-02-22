@@ -13,12 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const constants = require.main.require('./constants.js');
+
 const puppeteer = require('puppeteer');
 const inquirer = require('inquirer');
 const configure = require('./configure.js');
 const saml = require('./utils/SamlUtil.js');
 const AwsCliUtil = require('./utils/AwsCliUtil.js');
-const KEYHUB_CONFIG_DIR = require('./configure.js').getKeyhubConfigDir();
 let samlPayloadIntercepted = false;
 
 module.exports = {
@@ -33,7 +34,7 @@ module.exports = {
         }
 
         const browser = await puppeteer.launch({
-            userDataDir: KEYHUB_CONFIG_DIR + 'puppeteer_profile/'
+            userDataDir: constants.PATHS.AWS_KEYHUB.PUPPETEER_PROFILE
         });
 
         let page;

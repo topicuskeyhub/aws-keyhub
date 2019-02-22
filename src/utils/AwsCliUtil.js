@@ -13,14 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const constants = require.main.require('./constants.js');
+
 const util = require('util');
 const ConfigParser = require('configparser');
-const os = require('os');
-const path = require('path');
 const fs = require('fs');
 const AwsSts = require('aws-sdk/clients/sts');
-
-const AWS_CONFIG_DIR = os.homedir() + path.sep + '.aws' + path.sep;
 
 module.exports = {
     async configureWithSamlAssertion(roleArn, principalArn, samlAssertion, duration) {
@@ -30,7 +28,7 @@ module.exports = {
 
     async checkIfConfigFileExists() {
         try {
-            await util.promisify(fs.access)(AWS_CONFIG_DIR + "config", fs.constants.F_OK);
+            await util.promisify(fs.access)(constants.PATHS.AWS_CLI.CONFIG, fs.constants.F_OK);
         } catch (error) {
             throw new Error('It looks like you have no AWS configuration file.\nPlease run `aws configure` first. You can leave the access key fields empty.');
         }
@@ -71,7 +69,7 @@ function stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration) {
 }
 
 async function writeCredentialFile(credentials) {
-    const credentialFilePath = AWS_CONFIG_DIR + "credentials";
+    const credentialFilePath = constants.PATHS.AWS_CLI.CREDENTIALS;
     await createFileIfNotExists(credentialFilePath);
 
     const credentialFile = new ConfigParser();
