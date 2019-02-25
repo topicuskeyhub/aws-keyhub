@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const constants = require.main.require('./constants.js');
+
 const inquirer = require('inquirer');
 const keytar = require('keytar');
-const os = require('os');
-const path = require('path');
 const Configstore = require('configstore');
 const config = new Configstore("aws-keyhub", {
     "keyhub": {
@@ -26,7 +26,8 @@ const config = new Configstore("aws-keyhub", {
     "aws": {
         "assumeDuration": ""
     }
-}, { 'configPath': os.homedir() + path.sep + '.aws-keyhub' + path.sep + 'config.json' });
+}, {'configPath': constants.PATHS.AWS_KEYHUB.CONFIG});
+
 
 module.exports = {
 
@@ -41,24 +42,27 @@ module.exports = {
     },
 
     hasValidConfiguration: async function () {
+        const errorPrefix = "No valid aws-keyhub configuration found.";
+        const errorSuffix = "Please run `aws-keyhub -c`.";
+
         const username = this.getUsername();
         if (username === null || username === undefined || username.length < 1) {
-            throw new Error('KeyHub username property is empty.');
+            throw new Error(`${errorPrefix}\nKeyHub username property is empty.\n${errorSuffix}`);
         }
 
         const password = await this.getPassword();
         if (password === null || password === undefined || password.length < 1) {
-            throw new Error('KeyHub password property is empty.');
+            throw new Error(`${errorPrefix}\nKeyHub password property is empty.\n${errorSuffix}`);
         }
 
         const url = this.getUrl();
         if (url === null || url === undefined || url.length < 1) {
-            throw new Error('KeyHub url property is empty.');
+            throw new Error(`${errorPrefix}\nKeyHub url property is empty.\n${errorSuffix}`);
         }
 
         const assumeDuration = this.getAssumeDuration();
         if (assumeDuration === null || assumeDuration === undefined || assumeDuration.length < 1) {
-            throw new Error('AWS assume role duration property is empty.');
+            throw new Error(`${errorPrefix}\nAWS assume role duration property is empty.\n${errorSuffix}`);
         }
 
         return true;
@@ -78,8 +82,12 @@ module.exports = {
 
     getAssumeDuration: function () {
         return get('aws.assumeDuration');
+    },
+
+    getKeyhubConfigDir: function () {
+        return KEYHUB_CONFIG_DIR;
     }
-}
+};
 
 function get(key) {
     return config.get(key);

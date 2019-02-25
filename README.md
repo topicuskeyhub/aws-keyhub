@@ -15,6 +15,7 @@ To set-up the aws-keyhub tool we need the KeyHub username, password and url. Con
 ### Authenticate
 When the application is configured you can run the tool by executing `aws-keyhub`.
 It will prompt you for the 2FA token and the role you want to use. This roles are the AWS roles that you have access to in one or more AWS accounts.
+If you provide the `--role-arn` parameter along with a valid role ARN for your account, that role will be automatically selected and you won't be prompted for a choice.
 
 ### Session duration
 Due to [restrictions by Amazon Web Services](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html) the maximum duration of the session is 12 hours. If authentication fails when using the AWS CLI please re-run the `aws-keyhub` command to get a new session. The default session duration is 12 hours (43200 sec). If you need a shorter duration please reconfigure with `aws-keyhub -c`.

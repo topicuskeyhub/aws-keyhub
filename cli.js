@@ -19,15 +19,20 @@ const program = require('commander');
 const packagejson = require('./package.json');
 
 (async () => {
-  program
-    .version(packagejson.version)
-    .option('-c, --configure', 'Configure KeyHub url and credentials.')
-    .parse(process.argv);
+    program
+        .version(packagejson.version)
+        .option('-c, --configure', 'Configure KeyHub url and credentials.')
+        .option('-r, --role-arn [role]', 'Automatically continue log-in with specified role ARN.')
+        .parse(process.argv);
 
-  if (program.configure) {
-    await require('./src/configure.js').configure();
-  } else {
-    require('./src/login.js').login();
-  }
+    if (program.configure) {
+        await require('./src/configure.js').configure();
+    } else {
+        let options = {};
+        if (program.roleArn) {
+            options.roleArn = program.roleArn;
+        }
+        require('./src/login.js').login(options);
+    }
 
 })();

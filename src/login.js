@@ -13,29 +13,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const constants = require.main.require('./constants.js');
+
 const puppeteer = require('puppeteer');
 const inquirer = require('inquirer');
 const configure = require('./configure.js');
 const saml = require('./utils/SamlUtil.js');
 const AwsCliUtil = require('./utils/AwsCliUtil.js');
-const os = require('os');
-const path = require('path');
 let samlPayloadIntercepted = false;
 
 module.exports = {
 
-    login: async function () {
+    login: async function (options) {
         try {
             await configure.hasValidConfiguration();
+            await AwsCliUtil.checkIfConfigFileExists();
         } catch (error) {
-            console.error('No valid configuration found.');
             console.error(error.message);
-            console.error('Please run `aws-keyhub -c` first.');
             process.exit(1);
         }
 
         const browser = await puppeteer.launch({
-            userDataDir: os.homedir() + path.sep + '.aws-keyhub' + path.sep + 'puppeteer_profile'
+            userDataDir: constants.PATHS.AWS_KEYHUB.PUPPETEER_PROFILE
         });
 
         let page;
@@ -46,7 +45,12 @@ module.exports = {
 
             await page.setRequestInterception(true);
             page.on('request', async (interceptedRequest) => {
-                await interceptSamlPayloadForAWS(interceptedRequest, page, browser);
+                try {
+                    await interceptSamlPayloadForAWS(interceptedRequest, page, browser, options.roleArn);
+                } catch (error) {
+                    console.error(error.message);
+                    process.exit(1);
+                }
             });
 
             await openKeyHub(page, configure.getUrl());
@@ -65,7 +69,7 @@ module.exports = {
         }
     }
 
-}
+};
 
 async function openKeyHub(page, keyHubUrl) {
     try {
@@ -126,7 +130,7 @@ async function askAndFillVerificationCodeIfFieldExists(page) {
     }
 }
 
-async function interceptSamlPayloadForAWS(interceptedRequest, page, browser) {
+async function interceptSamlPayloadForAWS(interceptedRequest, page, browser, preselectedRoleArn) {
     if (interceptedRequest._url === 'https://signin.aws.amazon.com/saml') {
         samlPayloadIntercepted = true;
 
@@ -134,45 +138,61 @@ async function interceptSamlPayloadForAWS(interceptedRequest, page, browser) {
         const samlResponseBase64 = saml.getBase64SamlResponse(samlResponse);
         const samlResponseDecoded = saml.getDecodedSamlResponse(samlResponseBase64);
         const rolesAndPrincipals = saml.getRolesAndPrincipalsFromSamlResponse(samlResponseDecoded);
-        const selectedRoleAndPrincipal = await letUserChooseAwsRole(rolesAndPrincipals);
+
+        const selectedRoleAndPrincipal = await selectAwsRole(rolesAndPrincipals, preselectedRoleArn);
+
+        if (selectedRoleAndPrincipal === undefined) {
+            throw new Error('Invalid role ARN provided, could not log in.');
+        }
 
         await AwsCliUtil.configureWithSamlAssertion(selectedRoleAndPrincipal.role, selectedRoleAndPrincipal.principal, samlResponseBase64, configure.getAssumeDuration());
         console.log('Successfully logged in, use the profile `keyhub`. (export AWS_PROFILE=keyhub / set AWS_PROFILE=keyhub)');
 
         await interceptedRequest.abort();
         await exit(browser, page);
+
     } else {
         await interceptedRequest.continue();
     }
 }
 
-async function letUserChooseAwsRole(rolesAndPrincipals) {
-    const answer = await inquirer.prompt([
+async function selectAwsRole(rolesAndPrincipals, preselectedRoleArn) {
+    let selectedRole;
+    if (preselectedRoleArn !== undefined) {
+        selectedRole = preselectedRoleArn;
+    } else {
+        selectedRole = (await askUserForAwsRole(rolesAndPrincipals)).selectedRole;
+    }
+
+    let selectedRoleAndPrincipal;
+    rolesAndPrincipals.some((roleAndPrincipal) => {
+        if (roleAndPrincipal.role === selectedRole) {
+            return selectedRoleAndPrincipal = roleAndPrincipal;
+        }
+    });
+
+    return selectedRoleAndPrincipal;
+}
+
+async function askUserForAwsRole(rolesAndPrincipals) {
+    return inquirer.prompt([
         {
             type: 'rawlist',
             name: 'selectedRole',
             message: 'Choose a role:',
             choices: () => {
                 return rolesAndPrincipals.map(entry => {
-                    return { name: entry.role + ' / ' + entry.description, value: entry.role };
+                    return {name: entry.role + ' / ' + entry.description, value: entry.role};
                 });
             }
         }
     ]);
-
-    let selectedRoleAndPrincipal;
-    rolesAndPrincipals.some((roleAndPrincipal) => {
-        if (roleAndPrincipal.role === answer.selectedRole)
-            return selectedRoleAndPrincipal = roleAndPrincipal;
-    });
-
-    return selectedRoleAndPrincipal;
 }
 
 async function exit(browser, page) {
     if (page && !page.isClosed()) {
         await page.close();
     }
-    await browser.close()
+    await browser.close();
     process.exit();
 }

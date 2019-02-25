@@ -13,20 +13,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const constants = require.main.require('./constants.js');
+
 const util = require('util');
-const exec = util.promisify(require('child_process').exec);
 const ConfigParser = require('configparser');
-const os = require('os');
-const path = require('path');
 const fs = require('fs');
 const AwsSts = require('aws-sdk/clients/sts');
 
 module.exports = {
     async configureWithSamlAssertion(roleArn, principalArn, samlAssertion, duration) {
         let credentials = await assumeRoleWithSaml(roleArn, principalArn, samlAssertion, duration);
-        await writeConfigFile(credentials);
+        await writeCredentialFile(credentials);
+    },
+
+    async checkIfConfigFileExists() {
+        try {
+            await util.promisify(fs.access)(constants.PATHS.AWS_CLI.CONFIG, fs.constants.F_OK);
+        } catch (error) {
+            throw new Error('It looks like you have no AWS configuration file.\nPlease run `aws configure` first. You can leave the access key fields empty.');
+        }
     }
-}
+};
 
 async function assumeRoleWithSaml(roleArn, principalArn, samlAssertion, duration) {
     const response = await stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration);
@@ -53,7 +60,7 @@ function stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration) {
     return new Promise((resolve, reject) => {
         sts.assumeRoleWithSAML(params, function (err, data) {
             if (err) {
-                console.error(err)
+                console.error(err);
                 throw err;
             }
             resolve(data);
@@ -61,26 +68,27 @@ function stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration) {
     });
 }
 
-async function writeConfigFile(credentials) {
-    const configFilePath = os.homedir() + path.sep + '.aws' + path.sep + 'credentials';
-    await createFileIfNotExists(configFilePath);
+async function writeCredentialFile(credentials) {
+    const credentialFilePath = constants.PATHS.AWS_CLI.CREDENTIALS;
+    await createFileIfNotExists(credentialFilePath);
 
-    const config = new ConfigParser();
-    config.read(configFilePath);
+    const credentialFile = new ConfigParser();
+    credentialFile.read(credentialFilePath);
 
-    if (!config.hasSection('keyhub'))
-        config.addSection('keyhub')
+    if (!credentialFile.hasSection('keyhub')) {
+        credentialFile.addSection('keyhub');
+    }
 
-    config.set('keyhub', 'aws_access_key_id', credentials.accessKeyId);
-    config.set('keyhub', 'aws_secret_access_key', credentials.secretAccessKey);
-    config.set('keyhub', 'aws_session_token', credentials.sessionToken);
+    credentialFile.set('keyhub', 'aws_access_key_id', credentials.accessKeyId);
+    credentialFile.set('keyhub', 'aws_secret_access_key', credentials.secretAccessKey);
+    credentialFile.set('keyhub', 'aws_session_token', credentials.sessionToken);
 
-    config.write(configFilePath);
+    credentialFile.write(credentialFilePath);
 }
 
 function createFileIfNotExists(path) {
     return new Promise((resolve) => {
-        fs.writeFile(path, '', { flag: 'a' }, (err) => {
+        fs.writeFile(path, '', {flag: 'a'}, (err) => {
             if (err)
                 throw err;
             resolve();
