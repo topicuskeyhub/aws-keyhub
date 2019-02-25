@@ -30,7 +30,7 @@
     "configstore": "4.0.0",
     "fast-xml-parser": "3.12.12",
     "inquirer": "6.2.1",
-    "keytar": "4.3.0",
+    "keytar": "4.4.1",
     "puppeteer": "1.6.2"
   }
 }
