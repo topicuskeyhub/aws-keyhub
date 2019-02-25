@@ -24,13 +24,13 @@
   "homepage": "https://github.com/topicuskeyhub/aws-keyhub",
   "dependencies": {
     "atob": "2.1.2",
-    "aws-sdk": "2.388.0",
+    "aws-sdk": "2.409.0",
     "commander": "2.19.0",
     "configparser": "0.2.6",
     "configstore": "4.0.0",
-    "fast-xml-parser": "3.12.12",
-    "inquirer": "6.2.1",
-    "keytar": "4.3.0",
+    "fast-xml-parser": "3.12.13",
+    "inquirer": "6.2.2",
+    "keytar": "4.4.1",
     "puppeteer": "1.6.2"
   }
 }
