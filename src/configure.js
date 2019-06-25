@@ -103,7 +103,7 @@ async function promptUser() {
         {
             type: 'password',
             name: 'password',
-            message: 'KeyHub password'
+            message: 'KeyHub or AD password (depending on your password synchronization settings)'
         },
         {
             type: 'text',
