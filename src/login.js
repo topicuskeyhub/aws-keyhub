@@ -105,6 +105,11 @@ async function fillInPasswordField(page, password) {
     const passwordSelector = 'input[name="password"]';
     await page.type(passwordSelector, password);
     await Promise.all([page.click('a.button-action'), page.waitForNavigation()]);
+
+    let validationErrors = await getValidationErrors(page);
+    if (validationErrors.length > 0) {
+        throw new Error(`Password validation error(s): ${validationErrors.join("\n")}`);
+    }
 }
 
 async function askAndFillVerificationCodeIfFieldExists(page) {
@@ -122,12 +127,35 @@ async function askAndFillVerificationCodeIfFieldExists(page) {
         // used for 2FA this path is skipped.
         if (verificationCode.verificationCode.length > 5) {
             await page.type(verificationCodeSelector, verificationCode.verificationCode);
-            await Promise.all([page.click('a.button-action'), page.waitForNavigation()]);
-            // TODO: handle invalid verification code entered response
+
+            try {
+                // The 2FA-page only navigates if the code is valid.
+                await Promise.all([page.click('a.button-action'), page.waitForNavigation({ timeout: 5000 })]);
+            }
+            catch(error) {
+                let validationErrors = await getValidationErrors(page);
+                if (validationErrors.length > 0) {
+                    console.warn(`2FA validation error(s): ${validationErrors.join("\n")}`);
+                    await askAndFillVerificationCodeIfFieldExists(page);
+                    return;
+                }
+
+                throw error;
+            }
         }
     } else {
         throw new Error('verification code field not found');
     }
+}
+
+async function getValidationErrors(page) {
+    const validationErrorListSelector = ".feedbackPanelERROR";
+    let validationErrors = await page.evaluate(() => {
+        let elements = Array.from(document.querySelectorAll(".feedbackPanelERROR"));
+        return elements.map(element => element.innerText);
+    });
+
+    return validationErrors;
 }
 
 async function interceptSamlPayloadForAWS(interceptedRequest, page, browser, preselectedRoleArn) {
