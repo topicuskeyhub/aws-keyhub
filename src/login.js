@@ -20,6 +20,7 @@ const inquirer = require('inquirer');
 const configure = require('./configure.js');
 const saml = require('./utils/SamlUtil.js');
 const AwsCliUtil = require('./utils/AwsCliUtil.js');
+const verificationCodeSelector = 'input[name="token"]';
 let samlPayloadIntercepted = false;
 
 module.exports = {
@@ -105,29 +106,74 @@ async function fillInPasswordField(page, password) {
     const passwordSelector = 'input[name="password"]';
     await page.type(passwordSelector, password);
     await Promise.all([page.click('a.button-action'), page.waitForNavigation()]);
+
+    let validationErrors = await getKeyHubValidationErrors(page);
+    if (validationErrors.length > 0) {
+        throw new Error(`Password validation error(s): ${validationErrors.join("\n")}`);
+    }
 }
 
 async function askAndFillVerificationCodeIfFieldExists(page) {
-    const verificationCodeSelector = 'input[name="token"]';
     if (await page.$(verificationCodeSelector) !== null) {
-        const verificationCode = await inquirer.prompt([
-            {
-                type: 'password',
-                name: 'verificationCode',
-                message: "KeyHub verification code (2FA)"
-            }
-        ]);
+        let verificationCodeResult = false;
+        let attempts = 0;
 
-        // Check for entered verification code. If the KeyHub app push notification is 
-        // used for 2FA this path is skipped.
-        if (verificationCode.verificationCode.length > 5) {
-            await page.type(verificationCodeSelector, verificationCode.verificationCode);
-            await Promise.all([page.click('a.button-action'), page.waitForNavigation()]);
-            // TODO: handle invalid verification code entered response
+        while (!verificationCodeResult) {
+            attempts++;
+            const verificationCode = await inquirer.prompt([
+                {
+                    type: 'password',
+                    name: 'verificationCode',
+                    message: "KeyHub verification code (2FA)"
+                }
+            ]);
+
+            // Check for entered verification code. If the KeyHub app push notification is 
+            // used for 2FA this path is skipped.
+            verificationCodeResult = await validateVerificationCode(page, verificationCode.verificationCode)
+
+            if (attempts == 5) {
+                throw new Error("Invalid verification code.")
+            }
         }
     } else {
         throw new Error('verification code field not found');
     }
+}
+
+async function validateVerificationCode(page, verificationCode) {
+    const minLength = 6;
+    if (verificationCode.length < minLength) {
+        console.warn(`Invalid 2FA code. Enter at least ${minLength} characters.`);
+        return false;
+    }
+
+    await page.type(verificationCodeSelector, verificationCode);
+
+    try {
+        // The 2FA-page only navigates if the code is valid.
+        await Promise.all([page.click('a.button-action'), page.waitForNavigation({ timeout: 5000 })]);
+    }
+    catch(error) {
+        let validationErrors = await getKeyHubValidationErrors(page);
+        if (validationErrors.length > 0) {
+            console.warn(`2FA validation error(s): ${validationErrors.join("\n")}`);
+            return false;
+        }
+
+        throw error;
+    }
+
+    return true;
+}
+
+async function getKeyHubValidationErrors(page) {
+    let validationErrors = await page.evaluate(() => {
+        let elements = Array.from(document.querySelectorAll(".feedbackPanelERROR"));
+        return elements.map(element => element.innerText);
+    });
+
+    return validationErrors;
 }
 
 async function interceptSamlPayloadForAWS(interceptedRequest, page, browser, preselectedRoleArn) {
