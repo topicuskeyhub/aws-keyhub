@@ -1,6 +1,6 @@
 {
   "name": "aws-keyhub",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AWS CLI login helper for Topicus KeyHub.",
   "main": "cli.js",
   "bin": {
@@ -15,7 +15,7 @@
     "url": "https://github.com/topicuskeyhub/aws-keyhub"
   },
   "engines": {
-    "node": ">=8.9.0"
+    "node": ">=10.13.0"
   },
   "license": "Apache-2.0",
   "bugs": {
