@@ -17,8 +17,11 @@ const constants = require.main.require('./constants.js');
 
 const puppeteer = require('puppeteer');
 const inquirer = require('inquirer');
+inquirer.registerPrompt('autocomplete', require('inquirer-autocomplete-prompt'));
+
 const configure = require('./configure.js');
 const saml = require('./utils/SamlUtil.js');
+const fuzzysort = require('fuzzysort')
 const AwsCliUtil = require('./utils/AwsCliUtil.js');
 const verificationCodeSelector = 'input[name="token"]';
 let samlPayloadIntercepted = false;
@@ -221,15 +224,25 @@ async function selectAwsRole(rolesAndPrincipals, preselectedRoleArn) {
 }
 
 async function askUserForAwsRole(rolesAndPrincipals) {
+    const searchOptions = rolesAndPrincipals.map(entry => {
+        return {name: entry.role + ' / ' + entry.description, value: entry.role};
+    });
+
     return inquirer.prompt([
         {
-            type: 'rawlist',
+            type: 'autocomplete',
             name: 'selectedRole',
             message: 'Choose a role:',
-            choices: () => {
-                return rolesAndPrincipals.map(entry => {
-                    return {name: entry.role + ' / ' + entry.description, value: entry.role};
-                });
+            source: (answersSoFar, input) => {
+                const searchResults = fuzzysort.go(input, searchOptions, {key:'name'})
+                return new Promise((resolve) => {
+                    // Show all options if no input was entered
+                    if (! input) {
+                        resolve(searchOptions)
+                    } else {
+                        resolve(searchResults.map(i => i.obj))
+                    }
+                })
             }
         }
     ]);
