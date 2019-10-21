@@ -33,6 +33,6 @@
     "inquirer": "6.5.2",
     "inquirer-autocomplete-prompt": "1.0.1",
     "keytar": "4.13.0",
-    "puppeteer": "git+ssh://git@github.com/GoogleChrome/puppeteer.git#5b34028e63c9532349ac525fa4c14daeada05b94"
+    "puppeteer": "git+https://github.com/GoogleChrome/puppeteer.git#5b34028e63c9532349ac525fa4c14daeada05b94"
   }
 }
