@@ -15,7 +15,7 @@
     "url": "https://github.com/topicuskeyhub/aws-keyhub"
   },
   "engines": {
-    "node": ">=10.16.0"
+    "node": ">=12.16.0"
   },
   "license": "Apache-2.0",
   "bugs": {
@@ -24,15 +24,15 @@
   "homepage": "https://github.com/topicuskeyhub/aws-keyhub",
   "dependencies": {
     "atob": "2.1.2",
-    "aws-sdk": "2.546.0",
-    "commander": "3.0.2",
+    "aws-sdk": "2.658.0",
+    "commander": "5.0.0",
     "configparser": "0.3.6",
-    "configstore": "5.0.0",
-    "fast-xml-parser": "3.12.20",
+    "configstore": "5.0.1",
+    "fast-xml-parser": "3.16.0",
     "fuzzysort": "1.1.4",
-    "inquirer": "6.5.2",
-    "inquirer-autocomplete-prompt": "1.0.1",
-    "keytar": "4.13.0",
-    "puppeteer": "git+https://github.com/GoogleChrome/puppeteer.git#5b34028e63c9532349ac525fa4c14daeada05b94"
+    "inquirer": "7.1.0",
+    "inquirer-autocomplete-prompt": "1.0.2",
+    "keytar": "5.5.0",
+    "puppeteer": "3.0.1"
   }
 }
