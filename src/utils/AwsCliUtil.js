@@ -89,10 +89,11 @@ async function verifyIfLoginSucceeded(roleArn) {
 }
 
 async function stsGetCallerIdentity() {
-    // Always force a refresh of the credentials
-    await AWS.config.credentials.refreshPromise();
-    const sts = new AWS.STS();
+    // Read credentials from file, to verify if they are correctly written.
+    const credentials = new AWS.SharedIniFileCredentials({profile: 'keyhub'});
+    AWS.config.credentials = credentials;
 
+    const sts = new AWS.STS();
     return new Promise((resolve, reject) => {
         sts.getCallerIdentity({}, function (err, data) {
             if (err) {
