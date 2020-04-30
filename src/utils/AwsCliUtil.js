@@ -81,7 +81,7 @@ async function verifyIfLoginSucceeded(roleArn) {
         const calculatedAssumedRoleArn = roleArn.replace('iam','sts').replace('role', 'assumed-role');
 
         // Calculated ARN should be at the start of the caller identity response ARN
-        if(response.Arn.indexOf(calculatedAssumedRoleArn) !== 0)
+        if(response.Arn.indexOf(calculatedAssumedRoleArn) === -1)
             throw new Error('Invalid assumed role found in STS caller identity, login failed.');
     } else {
         throw new Error('Invalid response for AWS STS caller identity received.');

@@ -68,8 +68,15 @@ module.exports = {
                 await askAndFillVerificationCodeIfFieldExists(page);
             }
         } catch (error) {
-            console.error(error);
-            await exit(browser, page);
+            // Ignore target closed error: Protocol error (Runtime.callFunctionOn): Target closed.
+            if(error.message.indexOf('Target closed') === -1 )
+                console.error(error);
+
+            try{
+                await exit(browser, page);
+            } catch(error){
+                // Always suppress exit errors, due to possible double exit.
+            }
         }
     }
 
