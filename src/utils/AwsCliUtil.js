@@ -70,9 +70,6 @@ function stsAssumeRoleWithSAML(principalArn, roleArn, samlAssertion, duration) {
 }
 
 async function verifyIfLoginSucceeded(roleArn) {
-
-    // TODO: check if credentials are fresh
-
     const response = await stsGetCallerIdentity();
     if (response !== null) {
         // STS assumed role arn differs from IAM role arn
