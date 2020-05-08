@@ -68,8 +68,15 @@ module.exports = {
                 await askAndFillVerificationCodeIfFieldExists(page);
             }
         } catch (error) {
-            console.error(error);
-            await exit(browser, page);
+            // Ignore target closed error: Protocol error (Runtime.callFunctionOn): Target closed.
+            if (error.message.indexOf('Target closed') === -1)
+                console.error(error);
+
+            try {
+                await exit(browser, page);
+            } catch (error) {
+                // Always suppress exit errors, due to possible double exit.
+            }
         }
     }
 
@@ -155,9 +162,8 @@ async function validateVerificationCode(page, verificationCode) {
 
     try {
         // The 2FA-page only navigates if the code is valid.
-        await Promise.all([page.click('a.button-action'), page.waitForNavigation({ timeout: 5000 })]);
-    }
-    catch(error) {
+        await Promise.all([page.click('a.button-action'), page.waitForNavigation({timeout: 5000})]);
+    } catch (error) {
         let validationErrors = await getKeyHubValidationErrors(page);
         if (validationErrors.length > 0) {
             console.warn(`2FA validation error(s): ${validationErrors.join("\n")}`);
@@ -234,10 +240,10 @@ async function askUserForAwsRole(rolesAndPrincipals) {
             name: 'selectedRole',
             message: 'Choose a role:',
             source: (answersSoFar, input) => {
-                const searchResults = fuzzysort.go(input, searchOptions, {key:'name'})
+                const searchResults = fuzzysort.go(input, searchOptions, {key: 'name'})
                 return new Promise((resolve) => {
                     // Show all options if no input was entered
-                    if (! input) {
+                    if (!input) {
                         resolve(searchOptions)
                     } else {
                         resolve(searchResults.map(i => i.obj))
