@@ -201,7 +201,7 @@ async function interceptSamlPayloadForAWS(interceptedRequest, page, browser, pre
         }
 
         await AwsCliUtil.configureWithSamlAssertion(selectedRoleAndPrincipal.role, selectedRoleAndPrincipal.principal, samlResponseBase64, configure.getAssumeDuration());
-        console.log('Successfully logged in, use the profile `keyhub`. (export AWS_PROFILE=keyhub / set AWS_PROFILE=keyhub)');
+        console.log('Successfully logged in, use the profile `keyhub`. (export AWS_PROFILE=keyhub / set AWS_PROFILE=keyhub / $env:AWS_PROFILE=\'keyhub\')');
 
         await interceptedRequest.abort();
         await exit(browser, page);
