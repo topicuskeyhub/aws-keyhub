@@ -25,12 +25,15 @@ const packagejson = require('./package.json');
         .option('-r, --role-arn [role]', 'Automatically continue log-in with specified role ARN.')
         .parse(process.argv);
 
-    if (program.configure) {
+
+    const opts = program.opts();
+
+    if (opts.configure) {
         await require('./src/configure.js').configure();
     } else {
         let options = {};
-        if (program.roleArn) {
-            options.roleArn = program.roleArn;
+        if (opts.roleArn) {
+            options.roleArn = opts.roleArn;
         }
         require('./src/login.js').login(options);
     }
