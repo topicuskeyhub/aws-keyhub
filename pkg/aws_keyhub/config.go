@@ -22,7 +22,7 @@ func ConfigureAwsKeyhub() {
 		},
 		{
 			Name:     "keyHubClientId",
-			Prompt:   &survey.Input{Message: "KeyHub aws-keyhub client id (e.g. 000000-0000-000-000-000000000000"},
+			Prompt:   &survey.Input{Message: "KeyHub aws-keyhub client id (e.g. 00000000-0000-0000-0000-000000000000"},
 			Validate: survey.Required,
 		},
 		{
@@ -45,7 +45,7 @@ func ConfigureAwsKeyhub() {
 
 	err := survey.Ask(questions, &answers)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatal("Failed to prompt user for configuration settings.", err)
 	}
 
 	config := KeyhubConfigFile{
@@ -94,11 +94,11 @@ func getAwsKeyHubConfig() KeyhubConfigFile {
 	doOnceReadAwsKeyHubConfig.Do(func() {
 		dat, err := ioutil.ReadFile(getAwsKeyHubConfigFilePath())
 		if err != nil {
-			logrus.Fatal("Failed to read aws-keyhub  configuration file", err)
+			logrus.Fatal("Failed to read aws-keyhub  configuration file.", err)
 		}
 		err = json.Unmarshal(dat, &awsKeyHubConfigFile)
 		if err != nil {
-			logrus.Fatal("Failed to unmarshal aws-keyhub configuration file", err)
+			logrus.Fatal("Failed to unmarshal aws-keyhub configuration file.", err)
 		}
 		logrus.Debugln("Read aws-keyhub configuration file", awsKeyHubConfigFile)
 	})
@@ -109,11 +109,11 @@ func getAwsKeyHubConfig() KeyhubConfigFile {
 func writeConfig(config KeyhubConfigFile) {
 	res, err := json.MarshalIndent(&config, "", "\t")
 	if err != nil {
-		logrus.Fatal("Failed to marshal aws-keyhub configuration file", err)
+		logrus.Fatal("Failed to marshal aws-keyhub configuration file.", err)
 	}
 	err = ioutil.WriteFile(getAwsKeyHubConfigFilePath(), res, 0600)
 	if err != nil {
-		logrus.Fatal("Failed to write aws-keyhub configuration file", err)
+		logrus.Fatal("Failed to write aws-keyhub configuration file.", err)
 	}
 	logrus.Debugln("Wrote aws-keyhub configuration file at", getAwsKeyHubConfigFilePath())
 }

@@ -19,7 +19,7 @@ func StsAssumeRoleWithSAML(principalArn string, roleArn string, samlAssertion st
 		RoleArn:         aws.String(roleArn),
 		SAMLAssertion:   aws.String(samlAssertion),
 	}
-	
+
 	newSession, _ := session.NewSession()
 	svc := sts.New(newSession)
 	result, err := svc.AssumeRoleWithSAML(input)
@@ -74,21 +74,28 @@ func WriteCredentialFile(credentials *sts.Credentials) {
 
 	cfg, err := ini.Load(credentialFilePath)
 	if err != nil {
-		logrus.Fatal("Failed to read credential file:", err)
+		logrus.Fatal("Failed to read credentials file:", err)
 	}
 
 	sec := cfg.Section("keyhub") // Auto-create if not exists
-	_, err = sec.NewKey("aws_access_key_id", accessKeyId)
-	_, err = sec.NewKey("aws_secret_access_key", secretAccessKey)
-	_, err = sec.NewKey("aws_session_token", sessionToken)
+	createNewKeyInSection(sec, "aws_access_key_id", accessKeyId)
+	createNewKeyInSection(sec, "aws_secret_access_key", secretAccessKey)
+	createNewKeyInSection(sec, "aws_session_token", sessionToken)
 
 	cfg.SaveTo(credentialFilePath)
+}
+
+func createNewKeyInSection(sec *ini.Section, key string, value string) {
+	_, err := sec.NewKey(key, value)
+	if err != nil {
+		logrus.Fatal("Unable to create new section in config file.", err)
+	}
 }
 
 func createCredentialsFileIfNotExists(credentialFilePath string) {
 	file, err := os.OpenFile(credentialFilePath, os.O_RDONLY|os.O_CREATE, 0600)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatal("Unable to create AWS CLI credentials file.", err)
 	}
 	file.Close()
 }
@@ -100,7 +107,7 @@ func getAwsCliPath() string {
 
 func getCredentialFilePath() string {
 	credentialFilePath := getAwsCliPath() + "credentials"
-	logrus.Debugln("Calculated AWS CLI credential file path:", credentialFilePath)
+	logrus.Debugln("Calculated AWS CLI credentials file path:", credentialFilePath)
 	return credentialFilePath
 }
 

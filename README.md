@@ -55,3 +55,10 @@ The configuration is stored in ```~/.aws-keyhub/config-v2.json```
 
 #### Help! The login flow is broken, something seems to be corrupt.
 Please verify that you can successfully login to the AWS console in your browser before using this tool.
+
+### Migrating from v1 to v2
+There is no migration path as in you have to install and configure aws-keyhub again. Any previous configuration is not persisted. We recommend you remove the old v1 configuration files by deleting the following files and directories:
+```
+~/.aws-keyhub/config.json
+~/.aws-keyhub/puppeteer_profile
+```

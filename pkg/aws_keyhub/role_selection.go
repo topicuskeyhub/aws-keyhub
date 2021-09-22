@@ -35,12 +35,12 @@ func promptForRole(rolesAndPrincipals map[string]RolesAndPrincipals) RolesAndPri
 
 	logrus.Debugln("User selected option:", selectedOption)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatal("Failed to prompt user for role.", err)
 	}
 
 	rolesAndPrincipal, err := findRoleAndPrincipalByOption(selectedOption, rolesAndPrincipals)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatal("Failed to find role and principal by role that the user selected in the prompt.", err)
 	}
 
 	return rolesAndPrincipal

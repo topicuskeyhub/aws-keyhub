@@ -65,7 +65,7 @@ func AuthorizeDevice() AuthorizeDeviceResponse {
 
 	resp, err := httpClient.PostForm(config.Keyhub.Url+authorizeDevicePath, data)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatal("Failed to post form data to KeyHub authorize device endpoint.", err)
 	}
 
 	defer resp.Body.Close()
@@ -74,7 +74,7 @@ func AuthorizeDevice() AuthorizeDeviceResponse {
 
 	var result AuthorizeDeviceResponse
 	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
-		logrus.Fatalln("Cannot unmarshal JSON")
+		logrus.Fatal("Cannot unmarshal JSON")
 	}
 
 	logrus.Debugln("KeyHub authorize device received confirmation code:", result.UserCode)
@@ -103,7 +103,7 @@ func PollForAccessToken(authorizeDeviceresponse AuthorizeDeviceResponse, noOfTim
 
 	resp, err := httpClient.PostForm(config.Keyhub.Url+tokenPath, data)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatal("Failed to post form data to KeyHub token endpoint.", err)
 	}
 	logrus.Debugln("KeyHub login response body:", resp)
 
@@ -145,7 +145,7 @@ func ExchangeToken(loginResponse LoginResponse) ExchangeResponse {
 
 	resp, err := httpClient.PostForm(config.Keyhub.Url+exchangePath, data)
 	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatal("Failed to post form data to KeyHub exchange endpoint.", err)
 	}
 	logrus.Debugln("KeyHub token exchange response:", resp)
 

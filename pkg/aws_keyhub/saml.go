@@ -11,8 +11,7 @@ import (
 func DecodeSAMLResponse(samlResponse string) []byte {
 	decoded, err := base64.URLEncoding.DecodeString(samlResponse)
 	if err != nil {
-		logrus.Println("Failed to decode SAML Response from KeyHub.")
-		logrus.Fatal(err)
+		logrus.Fatal("Failed to decode SAML Response from KeyHub.", err)
 	}
 
 	logrus.Debugln("Decoded SAML Response", string(decoded))
