@@ -9,7 +9,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(loginCmd)
-	loginCmd.Flags().StringVarP(&roleArn, "role-arn", "r", "", "login with the specified role ARN instead of prompting")
+	loginCmd.Flags().StringVarP(&roleArn, "role-arn", "r", "", "login with the specified role ARN instead of asking for the role you want to login with")
 }
 
 var loginCmd = &cobra.Command{

@@ -13,15 +13,19 @@ Download the latest release from https://github.com/topicuskeyhub/aws-keyhub/rel
 2. Move the binary to a file location on your system PATH. `sudo mv ./kubectl /usr/local/bin/kubectl`
 
 ##### Windows
-1. Todo
-
+1. Install the binary on your system's PATH
+   1. In Search, search for and then select: System (Control Panel)
+   2. Click the Advanced system settings link. 
+   3. Click Environment Variables. In the section System Variables find the PATH environment variable and select it. Click Edit. If the PATH environment variable does not exist, click New. 
+   5. In the Edit System Variable (or New System Variable) window, click “New” and type in the new path you want to add. This should be the folder where aws-keyhub is located. Close all remaining windows by clicking OK. 
+   6. Reopen Command prompt window, and start `aws-keyhub`
 
 ### Configuration
 To set up the aws-keyhub tool we need the KeyHub url, aws-keyhub ClientId and AWS SAML ClientId. Configuring these properties can be done by running with the `configure` command: `aws-keyhub configure`
 
 ### Authenticate
 When the application is configured you can run the tool by executing `aws-keyhub login`.
-It will open a webpage of KeyHub where you can authorize aws-keyhub. It than retrieves the roles. This roles are the AWS roles that you have access to in one or more AWS accounts.
+It will open a webpage of KeyHub where you can authorize aws-keyhub. It then retrieves the roles. These roles are the AWS roles that you have access to in one or more AWS accounts.
 If you provide the `--role-arn` parameter along with a valid role ARN for your account, that role will be automatically selected and you won't be prompted for a choice. For example `aws-keyhub login --role-arn arn:aws:iam::123456789012:role/MyCustomRole`
 
 ### Session duration
@@ -57,7 +61,7 @@ The configuration is stored in ```~/.aws-keyhub/config-v2.json```
 Please verify that you can successfully login to the AWS console in your browser before using this tool.
 
 ### Migrating from v1 to v2
-There is no migration path as in you have to install and configure aws-keyhub again. Any previous configuration is not persisted. We recommend you remove the old v1 configuration files by deleting the following files and directories:
+There is no migration path so you only have to install and configure aws-keyhub again. Any previous configuration is not persisted. We recommend you remove the old v1 configuration files by deleting the following files and directories:
 ```
 ~/.aws-keyhub/config.json
 ~/.aws-keyhub/puppeteer_profile

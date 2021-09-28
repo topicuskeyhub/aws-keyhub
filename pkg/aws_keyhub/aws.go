@@ -45,11 +45,11 @@ func VerifyIfLoginWasSuccessful(roleArn string) {
 	}
 	logrus.Debugln("AWS STS GetCallerIdentity result:", result)
 
-	retrievedRoleArn := *result.Arn
+	retrievedStsRoleArn := *result.Arn
 	// STS assumed role arn differs from IAM role arn
 	// IAM arn:aws:iam::123456789000:role/example-role
 	// STS arn:aws:sts::123456789000:assumed-role/example-role/example-username
-	calculatedAssumedRoleArn := strings.Replace(strings.Replace(retrievedRoleArn, "sts", "iam", 1), "assumed-role", "role", 1)
+	calculatedAssumedRoleArn := strings.Replace(strings.Replace(retrievedStsRoleArn, "sts", "iam", 1), "assumed-role", "role", 1)
 
 	// AssumedRole should contain the RoleArn since the AssumedRole also contains the username a exact match won't work
 	if !strings.Contains(calculatedAssumedRoleArn, roleArn) {
