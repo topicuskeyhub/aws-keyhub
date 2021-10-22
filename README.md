@@ -9,8 +9,9 @@ CLI login helper for the [AWS CLI](https://aws.amazon.com/cli/) when using SAML 
 Download the latest release from https://github.com/topicuskeyhub/aws-keyhub/releases
 
 ##### Linux / macOS
-1. Make the binary executable `chmod +x ./kubectl`
-2. Move the binary to a file location on your system PATH. `sudo mv ./kubectl /usr/local/bin/kubectl`
+1. Make the binary executable `chmod +x ./aws-keyhub`
+2. Move the binary to a file location on your system PATH. `sudo mv ./aws-keyhub /usr/local/bin/aws-keyhub`
+3. macOS only: this binary is not notarized. To open a non-notarized application you can [follow this guide from Apple.](https://support.apple.com/en-gb/guide/mac-help/mh40616/mac) 
 
 ##### Windows
 1. Install the binary on your system's PATH
@@ -60,9 +61,25 @@ The configuration is stored in ```~/.aws-keyhub/config-v2.json```
 #### Help! The login flow is broken, something seems to be corrupt.
 Please verify that you can successfully login to the AWS console in your browser before using this tool.
 
-### Migrating from v1 to v2
-There is no migration path so you only have to install and configure aws-keyhub again. Any previous configuration is not persisted. We recommend you remove the old v1 configuration files by deleting the following files and directories:
-```
-~/.aws-keyhub/config.json
-~/.aws-keyhub/puppeteer_profile
-```
+## Migrating from v1 to v2
+There is no migration path, you have to install and configure aws-keyhub again. Any previous configuration is not persisted. 
+
+### Removing the old aws-keyhub
+1. Uninstall aws-keyhub using npm `npm uninstall -g aws-keyhub`
+2. Remove the old v1 configuration files by deleting the following files and directories:
+   ```
+   ~/.aws-keyhub/config.json
+   ~/.aws-keyhub/puppeteer_profile
+   ```
+
+### Command mapping
+We have changed a number of commands in v2. Here is a mapping of the v1 commands and their counterparts in v2.
+
+| v1                           | v2                          |
+|------------------------------|-----------------------------|
+| aws-keyhub -V                | aws-keyhub version          |
+| aws-keyhub --configure       | aws-keyhub configure        |
+| aws-keyhub                   | aws-keyhub login            |
+| aws-keyhub --role-arn        | aws-keyhub login --role-arn |
+| aws-keyhub --help            | aws-keyhub help             |
+|                              |                             |
