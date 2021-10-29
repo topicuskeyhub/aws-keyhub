@@ -6,19 +6,31 @@ CLI login helper for the [AWS CLI](https://aws.amazon.com/cli/) when using SAML 
 ### Installation
 
 #### Release version
-Run `npm install -g aws-keyhub`
+Download the latest release from https://github.com/topicuskeyhub/aws-keyhub/releases
+
+##### Linux / macOS
+1. Make the binary executable `chmod +x ./aws-keyhub`
+2. Move the binary to a file location on your system PATH. `sudo mv ./aws-keyhub /usr/local/bin/aws-keyhub`
+3. macOS only: this binary is not notarized. To open a non-notarized application you can [follow this guide from Apple.](https://support.apple.com/en-gb/guide/mac-help/mh40616/mac) 
+
+##### Windows
+1. Install the binary on your system's PATH
+   1. In Search, search for and then select: System (Control Panel)
+   2. Click the Advanced system settings link. 
+   3. Click Environment Variables. In the section System Variables find the PATH environment variable and select it. Click Edit. If the PATH environment variable does not exist, click New. 
+   5. In the Edit System Variable (or New System Variable) window, click “New” and type in the new path you want to add. This should be the folder where aws-keyhub is located. Close all remaining windows by clicking OK. 
+   6. Reopen Command prompt window, and start `aws-keyhub`
 
 ### Configuration
-To set-up the aws-keyhub tool we need the KeyHub username, password and url. Configuring these properties can be done by running with the `-c` param: `aws-keyhub -c`
-*Note: the KeyHub url should be the SAML IDP initiated-flow url. It's similar to: https://keyhub.domain.tld/login/initiate?client=urn:amazon:webservices*
+To set up the aws-keyhub tool we need the KeyHub url, aws-keyhub ClientId and AWS SAML ClientId. Configuring these properties can be done by running with the `configure` command: `aws-keyhub configure`
 
 ### Authenticate
-When the application is configured you can run the tool by executing `aws-keyhub`.
-It will prompt you for the 2FA token and the role you want to use. This roles are the AWS roles that you have access to in one or more AWS accounts.
-If you provide the `--role-arn` parameter along with a valid role ARN for your account, that role will be automatically selected and you won't be prompted for a choice.
+When the application is configured you can run the tool by executing `aws-keyhub login`.
+It will open a webpage of KeyHub where you can authorize aws-keyhub. It then retrieves the roles. These roles are the AWS roles that you have access to in one or more AWS accounts.
+If you provide the `--role-arn` parameter along with a valid role ARN for your account, that role will be automatically selected and you won't be prompted for a choice. For example `aws-keyhub login --role-arn arn:aws:iam::123456789012:role/MyCustomRole`
 
 ### Session duration
-Due to [restrictions by Amazon Web Services](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html) the maximum duration of the session is 12 hours. If authentication fails when using the AWS CLI please re-run the `aws-keyhub` command to get a new session. The default session duration is 12 hours (43200 sec). If you need a shorter duration please reconfigure with `aws-keyhub -c`.
+Due to [restrictions by Amazon Web Services](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithSAML.html) the maximum duration of the session is 12 hours. If authentication fails when using the AWS CLI please re-run the `aws-keyhub login` command to get a new session. The default session duration is 12 hours (43200 sec). If you need a shorter duration please reconfigure with `aws-keyhub configure`.
 
 ## Topicus KeyHub configuration
 For optimal usage of this tool your KeyHub instance needs to be configured to send additional SAML payload. The payload helps a user to select the right role if they have access to multiple AWS accounts by displaying a description. Add the custom attribute ```https://github.com/topicuskeyhub/aws-keyhub/groups``` with the following code to build the descriptive array.
@@ -41,10 +53,33 @@ return groups.filter(function (group) {
 
 ## FAQ
 #### How is my KeyHub password stored?
-To make the login process as easy as possible we store your password when running the configure command. To make sure it's stored safely we use keytar. Keytar stores the password in a native way depending on your operating system. For MacOS the native Keychain is used, for Windows keytar relies on Credential Vault. On Linux the libsecret library is used. More information about keytar is found here: https://www.npmjs.com/package/keytar
+Your password is no longer stored in version 2 of this tool. It does store a temporary OIDC access token. 
 
 #### Where is the configuration stored?
-The configuration is stored in ```~/.aws-keyhub/config.json```
+The configuration is stored in ```~/.aws-keyhub/config-v2.json```
 
 #### Help! The login flow is broken, something seems to be corrupt.
-aws-keyhub uses headless Chrome to login. It is possible that something is wrong with your Chrome profile. If this occures you can delete the Chrome profile which can be found at ```~/.aws-keyhub/puppeteer_profile```
+Please verify that you can successfully login to the AWS console in your browser before using this tool.
+
+## Migrating from v1 to v2
+There is no migration path, you have to install and configure aws-keyhub again. Any previous configuration is not persisted. 
+
+### Removing the old aws-keyhub
+1. Uninstall aws-keyhub using npm `npm uninstall -g aws-keyhub`
+2. Remove the old v1 configuration files by deleting the following files and directories:
+   ```
+   ~/.aws-keyhub/config.json
+   ~/.aws-keyhub/puppeteer_profile
+   ```
+
+### Command mapping
+We have changed a number of commands in v2. Here is a mapping of the v1 commands and their counterparts in v2.
+
+| v1                           | v2                          |
+|------------------------------|-----------------------------|
+| aws-keyhub -V                | aws-keyhub version          |
+| aws-keyhub --configure       | aws-keyhub configure        |
+| aws-keyhub                   | aws-keyhub login            |
+| aws-keyhub --role-arn        | aws-keyhub login --role-arn |
+| aws-keyhub --help            | aws-keyhub help             |
+|                              |                             |
