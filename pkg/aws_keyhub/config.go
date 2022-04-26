@@ -2,11 +2,13 @@ package aws_keyhub
 
 import (
 	"encoding/json"
-	"github.com/AlecAivazis/survey/v2"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
+
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/sirupsen/logrus"
 )
 
 var awsKeyHubConfigFile KeyhubConfigFile
@@ -86,15 +88,36 @@ func CheckIfAwsKeyHubConfigFileExists() {
 	logrus.Debugln("aws-keyhub configuration file exists.")
 }
 
+func AssureAwsKeyHubConfigDirectoryExists() {
+	configDirectory := getAwsKeyHubConfigDirectory()
+
+	logContext := logrus.WithFields(logrus.Fields{
+		"directory": configDirectory,
+	})
+	if _, err := os.Stat(configDirectory); os.IsNotExist(err) {
+		err = os.Mkdir(configDirectory, 0700)
+		if err != nil {
+			logContext.Fatalln("Failed to create directory", err)
+		}
+		logContext.Debugln("Config directory created")
+		return
+	}
+	logContext.Debugln("Config directory already exists")
+}
+
+func getAwsKeyHubConfigDirectory() string {
+	return filepath.Join(getUserHomeDir(), ".aws-keyhub")
+}
+
 func getAwsKeyHubConfigFilePath() string {
-	return getUserHomeDir() + string(os.PathSeparator) + ".aws-keyhub" + string(os.PathSeparator) + "config-v2.json"
+	return filepath.Join(getAwsKeyHubConfigDirectory(), "config-v2.json")
 }
 
 func getAwsKeyHubConfig() KeyhubConfigFile {
 	doOnceReadAwsKeyHubConfig.Do(func() {
 		dat, err := ioutil.ReadFile(getAwsKeyHubConfigFilePath())
 		if err != nil {
-			logrus.Fatal("Failed to read aws-keyhub  configuration file.", err)
+			logrus.Fatal("Failed to read aws-keyhub configuration file.", err)
 		}
 		err = json.Unmarshal(dat, &awsKeyHubConfigFile)
 		if err != nil {
