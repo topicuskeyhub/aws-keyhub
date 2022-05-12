@@ -23,6 +23,7 @@ var configureCmd = &cobra.Command{
 }
 
 func configure() {
+	aws_keyhub.AssureAwsKeyHubConfigDirectoryExists()
 	aws_keyhub.ConfigureAwsKeyhub()
 	logrus.Infoln("Configuration of aws-keyhub completed. You can now use the `login` command.")
 }
