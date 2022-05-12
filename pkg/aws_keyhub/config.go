@@ -95,7 +95,7 @@ func AssureAwsKeyHubConfigDirectoryExists() {
 		"directory": configDirectory,
 	})
 	if _, err := os.Stat(configDirectory); os.IsNotExist(err) {
-		err = os.Mkdir(configDirectory, 0600)
+		err = os.Mkdir(configDirectory, 0700)
 		if err != nil {
 			logContext.Fatalln("Failed to create config directory", err)
 		}
