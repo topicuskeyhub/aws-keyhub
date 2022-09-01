@@ -83,3 +83,7 @@ We have changed a number of commands in v2. Here is a mapping of the v1 commands
 | aws-keyhub --role-arn        | aws-keyhub login --role-arn |
 | aws-keyhub --help            | aws-keyhub help             |
 |                              |                             |
+
+## Topicus Responsible Disclosure
+If you have found a weak spot in one of our systems, please let us know so that we can take measures as soon as possible.
+https://topicus.nl/disclosure
