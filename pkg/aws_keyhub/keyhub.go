@@ -134,20 +134,23 @@ func ExchangeToken(loginResponse LoginResponse) ExchangeResponse {
 	config := getAwsKeyHubConfig()
 	httpClient := getHTTPClient()
 
-	exchangePath := "/login/oauth2/exchange"
+	exchangePath := "/login/oauth2/token"
 	data := url.Values{
-		"grant_type":         {"urn:ietf:params:oauth:grant-type:token-exchange"},
-		"subject_token_type": {"urn:ietf:params:oauth:token-type:access_token"},
-		"subject_token":      {loginResponse.AccessToken},
-		"resource":           {config.Keyhub.AwsSamlClientId},
+		"grant_type":           {"urn:ietf:params:oauth:grant-type:token-exchange"},
+		"subject_token_type":   {"urn:ietf:params:oauth:token-type:access_token"},
+		"subject_token":        {loginResponse.AccessToken},
+		"requested_token_type": {"urn:ietf:params:oauth:token-type:saml2"},
+		"resource":             {config.Keyhub.AwsSamlClientId},
+		"client_id":            {config.Keyhub.ClientId},
 	}
+	exchangeUrl := config.Keyhub.Url+exchangePath
 	logrus.Debugln("KeyHub token exchange POST formdata:", data)
 
-	resp, err := httpClient.PostForm(config.Keyhub.Url+exchangePath, data)
+	resp, err := httpClient.PostForm(exchangeUrl, data)
 	if err != nil {
 		logrus.Fatal("Failed to post form data to KeyHub exchange endpoint.", err)
 	}
-	logrus.Debugln("KeyHub token exchange response:", resp)
+	logrus.Debugln("KeyHub token exchange url:", exchangeUrl, " response:", resp)
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
