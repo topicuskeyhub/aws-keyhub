@@ -31,9 +31,9 @@ func StsAssumeRoleWithSAML(principalArn string, roleArn string, samlAssertion st
 	return result
 }
 
-func VerifyIfLoginWasSuccessful(roleArn string) {
+func VerifyIfLoginWasSuccessful(awsProfile string, roleArn string) {
 
-	credentialsFromFile := credentials.NewSharedCredentials(getCredentialFilePath(), "keyhub")
+	credentialsFromFile := credentials.NewSharedCredentials(getCredentialFilePath(), awsProfile)
 	config := &aws.Config{Credentials: credentialsFromFile}
 	newSession, _ := session.NewSession(config)
 	svc := sts.New(newSession)
@@ -64,7 +64,7 @@ func CheckIfAwsConfigFileExists() {
 	logrus.Debugln("AWS configuration file exists.")
 }
 
-func WriteCredentialFile(credentials *sts.Credentials) {
+func WriteCredentialFile(awsProfile string, credentials *sts.Credentials) {
 	accessKeyId := *credentials.AccessKeyId
 	secretAccessKey := *credentials.SecretAccessKey
 	sessionToken := *credentials.SessionToken
@@ -77,7 +77,7 @@ func WriteCredentialFile(credentials *sts.Credentials) {
 		logrus.Fatal("Failed to read credentials file:", err)
 	}
 
-	sec := cfg.Section("keyhub") // Auto-create if not exists
+	sec := cfg.Section(awsProfile) // Auto-create if not exists
 	createNewKeyInSection(sec, "aws_access_key_id", accessKeyId)
 	createNewKeyInSection(sec, "aws_secret_access_key", secretAccessKey)
 	createNewKeyInSection(sec, "aws_session_token", sessionToken)
