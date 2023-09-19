@@ -10,7 +10,7 @@ import (
 func init() {
 	rootCmd.AddCommand(loginCmd)
 	loginCmd.Flags().StringVarP(&roleArn, "role-arn", "r", "", "login with the specified role ARN instead of asking for the role you want to login with")
-	loginCmd.Flags().StringVarP(&awsProfile, "aws-profile", "p", "keyhub", "aws profile to write the credentials to")
+	loginCmd.Flags().StringVarP(&profile, "profile", "p", "keyhub", "aws profile to write the credentials to")
 }
 
 var loginCmd = &cobra.Command{
@@ -26,7 +26,7 @@ var loginCmd = &cobra.Command{
 }
 
 var roleArn string
-var awsProfile string
+var profile string
 
 func login() {
 	aws_keyhub.CheckIfAwsKeyHubConfigFileExists()
@@ -43,7 +43,7 @@ func login() {
 	selectedRoleAndPrincipal := aws_keyhub.SelectRoleAndPrincipal(roleArn, rolesAndPrincipals)
 	samlOutput = aws_keyhub.StsAssumeRoleWithSAML(selectedRoleAndPrincipal.Principal, selectedRoleAndPrincipal.Role, exchangeTokenResponse.AccessToken)
 
-	aws_keyhub.WriteCredentialFile(awsProfile, samlOutput.Credentials)
-	aws_keyhub.VerifyIfLoginWasSuccessful(awsProfile, selectedRoleAndPrincipal.Role)
-	logrus.Infof("Successfully logged in, use the AWS profile `%[1]s`. (export AWS_PROFILE=%[1]s / set AWS_PROFILE=%[1]s / $env:AWS_PROFILE='%[1]s')", awsProfile)
+	aws_keyhub.WriteCredentialFile(profile, samlOutput.Credentials)
+	aws_keyhub.VerifyIfLoginWasSuccessful(profile, selectedRoleAndPrincipal.Role)
+	logrus.Infof("Successfully logged in, use the AWS profile `%[1]s`. (export AWS_PROFILE=%[1]s / set AWS_PROFILE=%[1]s / $env:AWS_PROFILE='%[1]s')", profile)
 }
