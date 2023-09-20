@@ -84,7 +84,6 @@ func WriteCredentialFile(profile string, credentials *sts.Credentials) {
 
 	cfg.SaveTo(credentialFilePath)
 	logrus.Debugf("Credentials saved to '%s' under profile section: [%s]", credentialFilePath, profile)
-	logrus.Infof("Successfully logged in, use the AWS profile `%[1]s`. (export AWS_PROFILE=%[1]s / set AWS_PROFILE=%[1]s / $env:AWS_PROFILE='%[1]s')", profile)
 }
 
 func createNewKeyInSection(sec *ini.Section, key string, value string) {
