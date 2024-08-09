@@ -1,4 +1,4 @@
-#!/bin/env sh
+#!/usr/bin/env sh
 set -x
 
 CMD_PKG='github.com/topicuskeyhub/aws-keyhub/cmd'
