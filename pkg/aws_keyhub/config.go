@@ -3,6 +3,7 @@ package aws_keyhub
 import (
 	"encoding/json"
 	"os"
+
 	"path/filepath"
 	"sync"
 
@@ -109,7 +110,7 @@ func getAwsKeyHubConfigDirectory() string {
 }
 
 func getAwsKeyHubConfigFilePath() string {
-	return filepath.Join(getAwsKeyHubConfigDirectory(), "config-v2.json")
+	return filepath.Join(getAwsKeyHubConfigDirectory(), "config-christian.json")
 }
 
 func getAwsKeyHubConfig() KeyhubConfigFile {

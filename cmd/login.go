@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"os"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/topicuskeyhub/aws-keyhub/pkg/aws_keyhub"
@@ -34,8 +36,18 @@ func login() {
 	aws_keyhub.CheckIfAwsConfigFileExists()
 	ctx := context.Background()
 
-	authorizeDeviceResponse := aws_keyhub.AuthorizeDevice()
-	loginResponse := aws_keyhub.PollForAccessToken(authorizeDeviceResponse, 0)
+	// Ergens refresh token wegschrijven; + metadata hoelang geleden het was.
+
+	_, err := os.Stat("login.json")
+
+	var loginResponse aws_keyhub.LoginResponse
+
+	if os.IsNotExist(err) {
+		authorizeDeviceResponse := aws_keyhub.AuthorizeDevice()
+		loginResponse = aws_keyhub.PollForAccessToken(authorizeDeviceResponse, 0)
+	} else {
+		loginResponse = aws_keyhub.RefreshToken()
+	}
 	exchangeTokenResponse := aws_keyhub.ExchangeToken(loginResponse)
 	samlResponseDecoded := aws_keyhub.DecodeSAMLResponse(exchangeTokenResponse.AccessToken)
 	rolesAndPrincipals := aws_keyhub.RolesAndPrincipalsFromSamlResponse(samlResponseDecoded)
