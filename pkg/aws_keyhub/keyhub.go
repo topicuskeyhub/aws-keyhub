@@ -3,14 +3,16 @@ package aws_keyhub
 import (
 	"crypto/tls"
 	"encoding/json"
-	"github.com/pkg/browser"
-	"github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/cli/browser"
+	"github.com/sirupsen/logrus"
 )
 
 var doOnceHTTPClient sync.Once
@@ -26,10 +28,11 @@ type AuthorizeDeviceResponse struct {
 }
 
 type LoginResponse struct {
-	AccessToken string `json:"access_token"`
-	Scope       string `json:"scope"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int    `json:"expires_in"`
+	AccessToken  string  `json:"access_token"`
+	RefreshToken *string `json:"refresh_token"`
+	Scope        string  `json:"scope"`
+	TokenType    string  `json:"token_type"`
+	ExpiresIn    int     `json:"expires_in"`
 }
 
 type ExchangeResponse struct {
@@ -44,7 +47,7 @@ func getHTTPClient() http.Client {
 	doOnceHTTPClient.Do(func() {
 		logrus.Debugln("Initializing HTTP Client for further usage.")
 		httpClient = http.Client{Timeout: time.Duration(20) * time.Second}
-		if config.Keyhub.AllowInsecureTLS == true {
+		if config.Keyhub.AllowInsecureTLS {
 			http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
 	})
@@ -69,7 +72,10 @@ func AuthorizeDevice() AuthorizeDeviceResponse {
 	}
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Fatal("Failed to read KeyHub authorize device response body", err)
+	}
 	logrus.Debugln("KeyHub authorize device response body:", string(body))
 
 	var result AuthorizeDeviceResponse
@@ -108,7 +114,10 @@ func PollForAccessToken(authorizeDeviceresponse AuthorizeDeviceResponse, noOfTim
 	logrus.Debugln("KeyHub login response body:", resp)
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Fatal("Failed to read KeyHub login response body", err)
+	}
 	logrus.Debugln("KeyHub login response body:", string(body))
 
 	if resp.StatusCode == 200 {
@@ -127,6 +136,79 @@ func PollForAccessToken(authorizeDeviceresponse AuthorizeDeviceResponse, noOfTim
 		logrus.Fatal("Error, cannot unmarshal JSON")
 	}
 
+	writeLoginToken(body)
+
+	return result
+}
+
+func writeLoginToken(body []byte) {
+	writeFile, err := os.Create("login.json")
+	if err != nil {
+		logrus.Fatal("Error creating login.json file:", err)
+	}
+	defer writeFile.Close()
+	_, err = writeFile.Write(body)
+	if err != nil {
+		logrus.Fatal("Error writing to login.json file:", err)
+	}
+}
+
+// TODO: Zorgen dat we andere response returnen indien het niet lukt.
+func RefreshToken() LoginResponse {
+
+	httpClient := getHTTPClient()
+	config := getAwsKeyHubConfig()
+
+	// TODO: get refresh token from secure storage? or..? u
+
+	file, err := os.Open("login.json")
+	if err != nil {
+		logrus.Fatal("Error opening login.json file:", err)
+	}
+	defer file.Close()
+
+	var loginResponse LoginResponse
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&loginResponse); err != nil {
+		logrus.Fatal("Error decoding login.json file:", err)
+	}
+
+	if loginResponse.RefreshToken == nil {
+		logrus.Fatal("Error, no refresh token found in login.json file")
+	}
+
+	tokenPath := "/login/oauth2/token"
+	data := url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {*loginResponse.RefreshToken},
+		"client_id":     {config.Keyhub.ClientId},
+	}
+	logrus.Debugln("KeyHub login POST formdata: ", data)
+
+	resp, err := httpClient.PostForm(config.Keyhub.Url+tokenPath, data)
+	if err != nil {
+		logrus.Fatal("Failed to post form data to KeyHub token endpoint.", err)
+	}
+	logrus.Debugln("KeyHub login response body:", resp)
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Fatal("Failed to read KeyHub login response body", err)
+	}
+	logrus.Debugln("KeyHub login response body:", string(body))
+
+	if resp.StatusCode == 200 {
+		logrus.Infoln("KeyHub refresh successful.")
+	} else {
+		logrus.Errorln("KeyHub refresh failed, unexpected response with HTTP status code", resp.StatusCode)
+	}
+	var result LoginResponse
+	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
+		logrus.Fatal("Error, cannot unmarshal JSON")
+	}
+
+	writeLoginToken(body)
 	return result
 }
 
@@ -143,7 +225,7 @@ func ExchangeToken(loginResponse LoginResponse) ExchangeResponse {
 		"resource":             {config.Keyhub.AwsSamlClientId},
 		"client_id":            {config.Keyhub.ClientId},
 	}
-	exchangeUrl := config.Keyhub.Url+exchangePath
+	exchangeUrl := config.Keyhub.Url + exchangePath
 	logrus.Debugln("KeyHub token exchange POST formdata:", data)
 
 	resp, err := httpClient.PostForm(exchangeUrl, data)
@@ -153,7 +235,10 @@ func ExchangeToken(loginResponse LoginResponse) ExchangeResponse {
 	logrus.Debugln("KeyHub token exchange url:", exchangeUrl, " response:", resp)
 
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logrus.Fatal("Failed to read KeyHub exchange response body", err)
+	}
 	logrus.Debugln("KeyHub token exchange response body:", string(body))
 
 	if resp.StatusCode == 200 {

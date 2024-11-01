@@ -2,8 +2,8 @@ package aws_keyhub
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
+
 	"path/filepath"
 	"sync"
 
@@ -110,12 +110,12 @@ func getAwsKeyHubConfigDirectory() string {
 }
 
 func getAwsKeyHubConfigFilePath() string {
-	return filepath.Join(getAwsKeyHubConfigDirectory(), "config-v2.json")
+	return filepath.Join(getAwsKeyHubConfigDirectory(), "config-christian.json")
 }
 
 func getAwsKeyHubConfig() KeyhubConfigFile {
 	doOnceReadAwsKeyHubConfig.Do(func() {
-		dat, err := ioutil.ReadFile(getAwsKeyHubConfigFilePath())
+		dat, err := os.ReadFile(getAwsKeyHubConfigFilePath())
 		if err != nil {
 			logrus.Fatal("Failed to read aws-keyhub configuration file.", err)
 		}
@@ -134,7 +134,7 @@ func writeConfig(config KeyhubConfigFile) {
 	if err != nil {
 		logrus.Fatal("Failed to marshal aws-keyhub configuration file.", err)
 	}
-	err = ioutil.WriteFile(getAwsKeyHubConfigFilePath(), res, 0600)
+	err = os.WriteFile(getAwsKeyHubConfigFilePath(), res, 0600)
 	if err != nil {
 		logrus.Fatal("Failed to write aws-keyhub configuration file.", err)
 	}
