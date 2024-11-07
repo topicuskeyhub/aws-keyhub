@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	"github.com/aws/aws-sdk-go/service/sts"
+	"context"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/topicuskeyhub/aws-keyhub/pkg/aws_keyhub"
@@ -31,6 +32,7 @@ var profile string
 func login() {
 	aws_keyhub.CheckIfAwsKeyHubConfigFileExists()
 	aws_keyhub.CheckIfAwsConfigFileExists()
+	ctx := context.Background()
 
 	authorizeDeviceResponse := aws_keyhub.AuthorizeDevice()
 	loginResponse := aws_keyhub.PollForAccessToken(authorizeDeviceResponse, 0)
@@ -41,9 +43,9 @@ func login() {
 	var samlOutput *sts.AssumeRoleWithSAMLOutput
 
 	selectedRoleAndPrincipal := aws_keyhub.SelectRoleAndPrincipal(roleArn, rolesAndPrincipals)
-	samlOutput = aws_keyhub.StsAssumeRoleWithSAML(selectedRoleAndPrincipal.Principal, selectedRoleAndPrincipal.Role, exchangeTokenResponse.AccessToken)
+	samlOutput = aws_keyhub.StsAssumeRoleWithSAML(ctx, selectedRoleAndPrincipal.Principal, selectedRoleAndPrincipal.Role, exchangeTokenResponse.AccessToken)
 
 	aws_keyhub.WriteCredentialFile(profile, samlOutput.Credentials)
-	aws_keyhub.VerifyIfLoginWasSuccessful(profile, selectedRoleAndPrincipal.Role)
+	aws_keyhub.VerifyIfLoginWasSuccessful(ctx, profile, selectedRoleAndPrincipal.Role)
 	logrus.Infof("Successfully logged in, use the AWS profile `%[1]s`. (export AWS_PROFILE=%[1]s / set AWS_PROFILE=%[1]s / $env:AWS_PROFILE='%[1]s')", profile)
 }

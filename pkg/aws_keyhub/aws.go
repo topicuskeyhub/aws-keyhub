@@ -1,28 +1,33 @@
 package aws_keyhub
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"context"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 	"os"
 	"strings"
 )
 
-func StsAssumeRoleWithSAML(principalArn string, roleArn string, samlAssertion string) *sts.AssumeRoleWithSAMLOutput {
-	config := getAwsKeyHubConfig()
+func StsAssumeRoleWithSAML(context context.Context, principalArn string, roleArn string, samlAssertion string) *sts.AssumeRoleWithSAMLOutput {
+	awsKeyHubConfig := getAwsKeyHubConfig()
 	input := &sts.AssumeRoleWithSAMLInput{
-		DurationSeconds: aws.Int64(config.Aws.AssumeDuration),
+		DurationSeconds: aws.Int32(awsKeyHubConfig.Aws.AssumeDuration),
 		PrincipalArn:    aws.String(principalArn),
 		RoleArn:         aws.String(roleArn),
 		SAMLAssertion:   aws.String(samlAssertion),
 	}
 
-	newSession, _ := session.NewSession()
-	svc := sts.New(newSession)
-	result, err := svc.AssumeRoleWithSAML(input)
+	cfg, err := config.LoadDefaultConfig(context)
+	if err != nil {
+		logrus.Fatal("Could not setup config for sts call: ", err)
+	}
+
+	svc := sts.NewFromConfig(cfg)
+	result, err := svc.AssumeRoleWithSAML(context, input)
 
 	if err != nil {
 		logrus.Fatal("AWS STS AssumeRoleWithSAML failed:", err)
@@ -31,15 +36,12 @@ func StsAssumeRoleWithSAML(principalArn string, roleArn string, samlAssertion st
 	return result
 }
 
-func VerifyIfLoginWasSuccessful(profile string, roleArn string) {
-
-	credentialsFromFile := credentials.NewSharedCredentials(getCredentialFilePath(), profile)
-	config := &aws.Config{Credentials: credentialsFromFile}
-	newSession, _ := session.NewSession(config)
-	svc := sts.New(newSession)
+func VerifyIfLoginWasSuccessful(context context.Context, profile string, roleArn string) {
+	cfg, err := config.LoadDefaultConfig(context, config.WithSharedConfigProfile(profile))
+	svc := sts.NewFromConfig(cfg)
 
 	input := &sts.GetCallerIdentityInput{}
-	result, err := svc.GetCallerIdentity(input)
+	result, err := svc.GetCallerIdentity(context, input)
 	if err != nil {
 		logrus.Fatal("Failed to get caller identity:", err)
 	}
@@ -64,7 +66,7 @@ func CheckIfAwsConfigFileExists() {
 	logrus.Debugln("AWS configuration file exists.")
 }
 
-func WriteCredentialFile(profile string, credentials *sts.Credentials) {
+func WriteCredentialFile(profile string, credentials *types.Credentials) {
 	accessKeyId := *credentials.AccessKeyId
 	secretAccessKey := *credentials.SecretAccessKey
 	sessionToken := *credentials.SessionToken
@@ -82,7 +84,10 @@ func WriteCredentialFile(profile string, credentials *sts.Credentials) {
 	createNewKeyInSection(sec, "aws_secret_access_key", secretAccessKey)
 	createNewKeyInSection(sec, "aws_session_token", sessionToken)
 
-	cfg.SaveTo(credentialFilePath)
+	err = cfg.SaveTo(credentialFilePath)
+	if err != nil {
+		logrus.Fatal("Credentials could not be saved:  ", err)
+	}
 	logrus.Debugf("Credentials saved to '%s' under profile section: [%s]", credentialFilePath, profile)
 }
 
