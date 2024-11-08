@@ -2,7 +2,6 @@ package aws_keyhub
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -42,7 +41,7 @@ func ConfigureAwsKeyhub() {
 		KeyHubUrl             string
 		KeyHubClientId        string
 		KeyHubAwsSamlClientId string
-		AssumeDuration        int64
+		AssumeDuration        int32
 	}{}
 
 	err := survey.Ask(questions, &answers)
@@ -78,7 +77,7 @@ type KeyhubConfig struct {
 }
 
 type KeyhubAwsConfig struct {
-	AssumeDuration int64 `json:"assumeDuration"`
+	AssumeDuration int32 `json:"assumeDuration"`
 }
 
 func CheckIfAwsKeyHubConfigFileExists() {
@@ -115,7 +114,7 @@ func getAwsKeyHubConfigFilePath() string {
 
 func getAwsKeyHubConfig() KeyhubConfigFile {
 	doOnceReadAwsKeyHubConfig.Do(func() {
-		dat, err := ioutil.ReadFile(getAwsKeyHubConfigFilePath())
+		dat, err := os.ReadFile(getAwsKeyHubConfigFilePath())
 		if err != nil {
 			logrus.Fatal("Failed to read aws-keyhub configuration file.", err)
 		}
@@ -134,7 +133,7 @@ func writeConfig(config KeyhubConfigFile) {
 	if err != nil {
 		logrus.Fatal("Failed to marshal aws-keyhub configuration file.", err)
 	}
-	err = ioutil.WriteFile(getAwsKeyHubConfigFilePath(), res, 0600)
+	err = os.WriteFile(getAwsKeyHubConfigFilePath(), res, 0600)
 	if err != nil {
 		logrus.Fatal("Failed to write aws-keyhub configuration file.", err)
 	}

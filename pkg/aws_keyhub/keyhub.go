@@ -3,7 +3,7 @@ package aws_keyhub
 import (
 	"crypto/tls"
 	"encoding/json"
-	"github.com/pkg/browser"
+	"github.com/cli/browser"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
@@ -143,7 +143,7 @@ func ExchangeToken(loginResponse LoginResponse) ExchangeResponse {
 		"resource":             {config.Keyhub.AwsSamlClientId},
 		"client_id":            {config.Keyhub.ClientId},
 	}
-	exchangeUrl := config.Keyhub.Url+exchangePath
+	exchangeUrl := config.Keyhub.Url + exchangePath
 	logrus.Debugln("KeyHub token exchange POST formdata:", data)
 
 	resp, err := httpClient.PostForm(exchangeUrl, data)
