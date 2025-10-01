@@ -3,7 +3,6 @@ package aws_keyhub
 import (
 	"crypto/tls"
 	"encoding/json"
-	"github.com/cli/browser"
 	"io"
 	"net/http"
 	"net/url"
@@ -28,12 +27,17 @@ type AuthorizeDeviceResponse struct {
 	ExpiresIn               int    `json:"expires_in"`
 }
 
-type LoginResponse struct {
+type AuthResponse struct {
 	AccessToken  string  `json:"access_token"`
 	RefreshToken *string `json:"refresh_token"`
 	Scope        string  `json:"scope"`
 	TokenType    string  `json:"token_type"`
 	ExpiresIn    int     `json:"expires_in"`
+}
+
+type RefreshTokenFile struct {
+	RefreshToken string    `json:"refresh_token"`
+	ExpireDate   time.Time `json:"expire_date"`
 }
 
 type ExchangeResponse struct {
@@ -56,7 +60,7 @@ func getHTTPClient() http.Client {
 	return httpClient
 }
 
-func AuthorizeDevice() AuthorizeDeviceResponse {
+func authorizeDevice() AuthorizeDeviceResponse {
 	config := getAwsKeyHubConfig()
 	httpClient := getHTTPClient()
 
@@ -91,7 +95,7 @@ func AuthorizeDevice() AuthorizeDeviceResponse {
 	return result
 }
 
-func PollForAccessToken(authorizeDeviceresponse AuthorizeDeviceResponse, noOfTimesPolled int) LoginResponse {
+func pollForAccessToken(authorizeDeviceresponse AuthorizeDeviceResponse, noOfTimesPolled int) AuthResponse {
 	noOfTimesPolled++
 	if noOfTimesPolled > 24 {
 		logrus.Fatal("Keyhub login failed. Authorization request was not accepted in a timely manner.")
@@ -126,94 +130,138 @@ func PollForAccessToken(authorizeDeviceresponse AuthorizeDeviceResponse, noOfTim
 	} else if resp.StatusCode == 400 && strings.Contains(strings.ToLower(string(body)), "authorization pending") {
 		logrus.Debugln("KeyHub login polling request gave 400 statuscode and authorization pending retrying in 5 seconds...")
 		time.Sleep(time.Duration(authorizeDeviceresponse.Interval) * time.Second)
-		return PollForAccessToken(authorizeDeviceresponse, noOfTimesPolled)
+		return pollForAccessToken(authorizeDeviceresponse, noOfTimesPolled)
 	} else {
 		logrus.Errorln("KeyHub login failed, unexpected response with HTTP status code", resp.StatusCode)
 		logrus.Fatal("Received HTTP response body:", resp.Body)
 	}
 
-	var result LoginResponse
-	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
+	var result AuthResponse
+	if err := json.Unmarshal(body, &result); err != nil {
 		logrus.Fatal("Error, cannot unmarshal JSON")
 	}
 
-	writeLoginToken(body)
+	if result.RefreshToken != nil {
+		writeRefreshToken(result)
+	}
 
 	return result
 }
 
-func writeLoginToken(body []byte) {
-	writeFile, err := os.Create("login.json")
+func writeRefreshToken(authResponse AuthResponse) {
+	filePath := GetAwsKeyHubRefreshTokenPath()
+	writeFile, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+
+	refreshTokenFile := RefreshTokenFile{
+		RefreshToken: *authResponse.RefreshToken,
+		ExpireDate:   time.Now().Add(time.Duration(authResponse.ExpiresIn) * time.Second),
+	}
 	if err != nil {
-		logrus.Fatal("Error creating login.json file:", err)
+		logrus.Fatal("Error creating refresh-token.json file:", err)
 	}
 	defer writeFile.Close()
-	_, err = writeFile.Write(body)
+	jsonBytes, err := json.Marshal(refreshTokenFile)
 	if err != nil {
-		logrus.Fatal("Error writing to login.json file:", err)
+		logrus.Fatal("Error marshaling refresh token to JSON:", err)
+	}
+	_, err = writeFile.Write(jsonBytes)
+	if err != nil {
+		logrus.Fatal("Error writing to refresh-token.json file:", err)
 	}
 }
 
-// TODO: Zorgen dat we andere response returnen indien het niet lukt.
-func RefreshToken() LoginResponse {
+func DoLogin() AuthResponse {
+	// Check if access token exists and is still valid
+	refreshTokenFile := readRefreshToken()
+	var authResponse *AuthResponse
+	if refreshTokenFile != nil && isAccessTokenValid(*refreshTokenFile) {
+		authResponse = getAccessTokenWithRefreshToken(*refreshTokenFile)
+	}
+
+	logrus.Debugln("AuthResponse from refresh token:", authResponse)
+
+	if authResponse != nil {
+		return *authResponse
+	}
+	authorizeDeviceResponse := authorizeDevice()
+	return pollForAccessToken(authorizeDeviceResponse, 0)
+
+}
+
+func readRefreshToken() *RefreshTokenFile {
+	filePath := GetAwsKeyHubRefreshTokenPath()
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+
+	var refreshTokenFile RefreshTokenFile
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&refreshTokenFile); err != nil {
+		logrus.Fatal("Error decoding refresh-token.json file:", err)
+	}
+	return &refreshTokenFile
+}
+
+func isAccessTokenValid(refreshTokenFile RefreshTokenFile) bool {
+	if refreshTokenFile.RefreshToken == "" {
+		return false
+		// If the token is expired or will expire in the next 30 seconds, consider it invalid
+	} else if refreshTokenFile.ExpireDate.Add(-30 * time.Second).Before(time.Now()) {
+		return false
+	}
+
+	return true
+}
+
+func getAccessTokenWithRefreshToken(refreshTokenFile RefreshTokenFile) *AuthResponse {
 
 	httpClient := getHTTPClient()
 	config := getAwsKeyHubConfig()
 
-	// TODO: get refresh token from secure storage? or..? u
-
-	file, err := os.Open("login.json")
-	if err != nil {
-		logrus.Fatal("Error opening login.json file:", err)
-	}
-	defer file.Close()
-
-	var loginResponse LoginResponse
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&loginResponse); err != nil {
-		logrus.Fatal("Error decoding login.json file:", err)
-	}
-
-	if loginResponse.RefreshToken == nil {
-		logrus.Fatal("Error, no refresh token found in login.json file")
-	}
-
 	tokenPath := "/login/oauth2/token"
 	data := url.Values{
 		"grant_type":    {"refresh_token"},
-		"refresh_token": {*loginResponse.RefreshToken},
+		"refresh_token": {refreshTokenFile.RefreshToken},
 		"client_id":     {config.Keyhub.ClientId},
 	}
-	logrus.Debugln("KeyHub login POST formdata: ", data)
+	logrus.Debugln("KeyHub token exchange POST formdata: ", data)
 
 	resp, err := httpClient.PostForm(config.Keyhub.Url+tokenPath, data)
 	if err != nil {
 		logrus.Fatal("Failed to post form data to KeyHub token endpoint.", err)
 	}
-	logrus.Debugln("KeyHub login response body:", resp)
-
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logrus.Fatal("Failed to read KeyHub login response body", err)
-	}
-	logrus.Debugln("KeyHub login response body:", string(body))
-
+	logrus.Debugln("KeyHub token exchange response body:", resp)
 	if resp.StatusCode == 200 {
-		logrus.Infoln("KeyHub refresh successful.")
+		logrus.Infoln("KeyHub token refresh successful.")
+	} else if resp.StatusCode == 400 && strings.Contains(strings.ToLower(resp.Status), "invalid_grant") {
+		logrus.Infoln("KeyHub token refresh failed, refresh token is invalid or has expired.")
+		return nil
 	} else {
-		logrus.Errorln("KeyHub refresh failed, unexpected response with HTTP status code", resp.StatusCode)
+		logrus.Fatal("KeyHub token refresh failed, unexpected response with HTTP status code", resp.StatusCode)
 	}
-	var result LoginResponse
+
+	body, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		logrus.Fatal("Failed to read KeyHub token exchange response body", err)
+	}
+	logrus.Debugln("KeyHub token exchange response body:", string(body))
+
+	var result AuthResponse
 	if err := json.Unmarshal(body, &result); err != nil { // Parse []byte to the go struct pointer
 		logrus.Fatal("Error, cannot unmarshal JSON")
 	}
 
-	writeLoginToken(body)
-	return result
+	if result.RefreshToken != nil {
+		writeRefreshToken(result)
+	}
+
+	return &result
 }
 
-func ExchangeToken(loginResponse LoginResponse) ExchangeResponse {
+func ExchangeToken(authResponse AuthResponse) ExchangeResponse {
 	config := getAwsKeyHubConfig()
 	httpClient := getHTTPClient()
 
@@ -221,7 +269,7 @@ func ExchangeToken(loginResponse LoginResponse) ExchangeResponse {
 	data := url.Values{
 		"grant_type":           {"urn:ietf:params:oauth:grant-type:token-exchange"},
 		"subject_token_type":   {"urn:ietf:params:oauth:token-type:access_token"},
-		"subject_token":        {loginResponse.AccessToken},
+		"subject_token":        {authResponse.AccessToken},
 		"requested_token_type": {"urn:ietf:params:oauth:token-type:saml2"},
 		"resource":             {config.Keyhub.AwsSamlClientId},
 		"client_id":            {config.Keyhub.ClientId},

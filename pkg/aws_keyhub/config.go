@@ -113,6 +113,10 @@ func getAwsKeyHubConfigFilePath() string {
 	return filepath.Join(getAwsKeyHubConfigDirectory(), "config-christian.json")
 }
 
+func GetAwsKeyHubRefreshTokenPath() string {
+	return filepath.Join(getAwsKeyHubConfigDirectory(), "refresh-token.json")
+}
+
 func getAwsKeyHubConfig() KeyhubConfigFile {
 	doOnceReadAwsKeyHubConfig.Do(func() {
 		dat, err := os.ReadFile(getAwsKeyHubConfigFilePath())
