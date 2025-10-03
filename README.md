@@ -53,7 +53,7 @@ return groups.filter(function (group) {
 
 ## FAQ
 #### How is my KeyHub password stored?
-Your password is no longer stored in version 2 of this tool. It does store a temporary OIDC access token. 
+Your password is no longer stored in version 2 of this tool. It does store a refresh token.
 
 #### Where is the configuration stored?
 The configuration is stored in ```~/.aws-keyhub/config-v2.json```
