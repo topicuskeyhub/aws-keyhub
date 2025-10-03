@@ -138,7 +138,12 @@ func pollForAccessToken(authorizeDeviceresponse AuthorizeDeviceResponse, noOfTim
 		return pollForAccessToken(authorizeDeviceresponse, noOfTimesPolled)
 	} else {
 		logrus.Errorln("KeyHub login failed, unexpected response with HTTP status code", resp.StatusCode)
-		logrus.Fatal("Received HTTP response body:", resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logrus.Errorln("Failed to read KeyHub response body:", err)
+		}
+		defer resp.Body.Close()
+		logrus.Fatal("Received HTTP response body:", string(body))
 	}
 
 	var result AuthResponse
@@ -267,6 +272,7 @@ func getAccessTokenWithRefreshToken(refreshTokenFile RefreshTokenFile) *AuthResp
 		if err != nil {
 			logrus.Errorln("Failed to read KeyHub token refresh response body:", err)
 		}
+		defer resp.Body.Close()
 		logrus.Errorln("KeyHub token refresh failed, unexpected response with HTTP status code", resp.StatusCode)
 		logrus.Fatal("Received HTTP response body:", string(body))
 	}
@@ -333,7 +339,12 @@ func ExchangeToken(authResponse AuthResponse) ExchangeResponse {
 		logrus.Infoln("KeyHub token exchange successful.")
 	} else {
 		logrus.Errorln("Unexpected response with HTTP statuscode ", resp.StatusCode, " received from KeyHub.")
-		logrus.Fatal("Received HTTP response body:", resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logrus.Errorln("Failed to read KeyHub response body:", err)
+		}
+		defer resp.Body.Close()
+		logrus.Fatal("Received HTTP response body:", string(body))
 	}
 
 	var result ExchangeResponse
