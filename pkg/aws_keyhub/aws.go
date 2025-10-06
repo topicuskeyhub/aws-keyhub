@@ -24,7 +24,7 @@ func StsAssumeRoleWithSAML(context context.Context, principalArn string, roleArn
 
 	cfg, err := config.LoadDefaultConfig(context)
 	if err != nil {
-		logrus.Fatal("Could not setup config for sts call: ", err)
+		logrus.Fatal("Failed to configure AWS SDK for STS call, please check your AWS CLI configuration: ", err)
 	}
 
 	svc := sts.NewFromConfig(cfg)
@@ -42,7 +42,7 @@ func VerifyIfLoginWasSuccessful(context context.Context, profile string, roleArn
 	cfg, err := config.LoadDefaultConfig(context, config.WithDefaultRegion("eu-west-1"), config.WithSharedConfigProfile(profile))
 
 	if err != nil {
-		logrus.Fatal("Could not setup config for sts call: ", err)
+		logrus.Fatal("Failed to configure AWS SDK for STS call, please check your AWS CLI configuration: ", err)
 	}
 	svc := sts.NewFromConfig(cfg)
 
