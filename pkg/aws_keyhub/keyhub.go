@@ -14,6 +14,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const MaxPollAttempts = 24
+const RefreshTokenClockSkewSeconds = 30
+
 var doOnceHTTPClient sync.Once
 var httpClient http.Client
 
@@ -117,7 +120,7 @@ func DoLogin() TokenExchangeResponse {
 
 func pollForAccessToken(authorizeDeviceresponse AuthorizeDeviceResponse, noOfTimesPolled int) TokenExchangeResponse {
 	noOfTimesPolled++
-	if noOfTimesPolled > 24 {
+	if noOfTimesPolled > MaxPollAttempts {
 		logrus.Fatal("Keyhub login failed. Authorization request was not accepted in a timely manner.")
 	}
 	config := getAwsKeyHubConfig()
@@ -229,7 +232,7 @@ func readRefreshToken() *RefreshTokenFile {
 func isAccessTokenValid(refreshTokenFile RefreshTokenFile) bool {
 	if refreshTokenFile.RefreshToken == "" {
 		return false
-	} else if refreshTokenFile.ExpireDate.Add(-30 * time.Second).Before(time.Now()) {
+	} else if refreshTokenFile.ExpireDate.Add(-RefreshTokenClockSkewSeconds * time.Second).Before(time.Now()) {
 		return false
 	}
 

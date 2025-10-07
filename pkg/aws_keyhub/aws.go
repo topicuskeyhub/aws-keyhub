@@ -38,7 +38,7 @@ func StsAssumeRoleWithSAML(context context.Context, principalArn string, roleArn
 }
 
 func VerifyIfLoginWasSuccessful(context context.Context, profile string, roleArn string) {
-	// There is not fallback on default profile, this might be a bug in aws go v2 sdk. For now set default region to avoid errors.
+	// There is no fallback on default profile, this might be a bug in aws go v2 sdk. For now set default region to avoid errors.
 	cfg, err := config.LoadDefaultConfig(context, config.WithDefaultRegion("eu-west-1"), config.WithSharedConfigProfile(profile))
 
 	if err != nil {
