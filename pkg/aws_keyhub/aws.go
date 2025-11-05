@@ -2,14 +2,15 @@ package aws_keyhub
 
 import (
 	"context"
+	"os"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
-	"os"
-	"strings"
 )
 
 func StsAssumeRoleWithSAML(context context.Context, principalArn string, roleArn string, samlAssertion string) *sts.AssumeRoleWithSAMLOutput {
@@ -23,7 +24,7 @@ func StsAssumeRoleWithSAML(context context.Context, principalArn string, roleArn
 
 	cfg, err := config.LoadDefaultConfig(context)
 	if err != nil {
-		logrus.Fatal("Could not setup config for sts call: ", err)
+		logrus.Fatal("Failed to configure AWS SDK for STS call, please check your AWS CLI configuration: ", err)
 	}
 
 	svc := sts.NewFromConfig(cfg)
@@ -37,7 +38,12 @@ func StsAssumeRoleWithSAML(context context.Context, principalArn string, roleArn
 }
 
 func VerifyIfLoginWasSuccessful(context context.Context, profile string, roleArn string) {
-	cfg, err := config.LoadDefaultConfig(context, config.WithSharedConfigProfile(profile))
+	// There is no fallback on default profile, this might be a bug in aws go v2 sdk. For now set default region to avoid errors.
+	cfg, err := config.LoadDefaultConfig(context, config.WithDefaultRegion("eu-west-1"), config.WithSharedConfigProfile(profile))
+
+	if err != nil {
+		logrus.Fatal("Failed to configure AWS SDK for STS call, please check your AWS CLI configuration: ", err)
+	}
 	svc := sts.NewFromConfig(cfg)
 
 	input := &sts.GetCallerIdentityInput{}
