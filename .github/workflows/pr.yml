@@ -1,0 +1,21 @@
+name: PR Build and Smoke Test
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  PR-build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: "^1.24.0"
+      - run: ./build-release.sh
+      - name: Smoke test - help
+        run: ./build/linux-amd64/aws-keyhub help | grep -q "login" || exit 1
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: aws-keyhub-pr-${{ github.event.pull_request.number }}
+          path: release/*.zip
+          retention-days: 7
