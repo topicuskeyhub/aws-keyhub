@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cli/browser"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -288,7 +289,7 @@ func storeRefreshToken(tokenExchangeResponse TokenExchangeResponse) {
 
 	refreshTokenFile := RefreshTokenFile{
 		RefreshToken: *tokenExchangeResponse.RefreshToken,
-		ExpireDate:   time.Now().Add(time.Duration(tokenExchangeResponse.ExpiresIn) * time.Second),
+		ExpireDate:   determineRefreshTokenExpireDate(tokenExchangeResponse),
 	}
 
 	jsonBytes, err := json.Marshal(refreshTokenFile)
@@ -300,6 +301,25 @@ func storeRefreshToken(tokenExchangeResponse TokenExchangeResponse) {
 		logrus.Fatalf("Error writing to %s file: %s", filePath, err)
 	}
 	logrus.Debugln("Wrote refresh token to file at", filePath)
+}
+
+// there is no field (yet) for refresh token expiration in the token exchange response, this is a best-effort attempt to determine it
+func determineRefreshTokenExpireDate(tokenExchangeResponse TokenExchangeResponse) time.Time {
+	var fallback = time.Now().Add(time.Duration(tokenExchangeResponse.ExpiresIn) * time.Second)
+	if tokenExchangeResponse.RefreshToken == nil || *tokenExchangeResponse.RefreshToken == "" {
+		logrus.Debugln("No refresh token present; using token expiration as fallback.")
+		return fallback
+	}
+	token, _, err := new(jwt.Parser).ParseUnverified(*tokenExchangeResponse.RefreshToken, jwt.MapClaims{})
+	if err == nil {
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			if exp, ok := claims["exp"].(float64); ok {
+				return time.Unix(int64(exp), 0)
+			}
+		}
+	}
+	logrus.Debugln("Unable to parse refresh token; using token expiration as fallback.")
+	return fallback
 }
 
 func removeInvalidOrExpiredRefreshTokenFile() {
