@@ -6,15 +6,15 @@ jobs:
   PR-build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
-          go-version: "^1.24.0"
+          go-version-file: 'go.mod'
       - run: ./build-release.sh
       - name: "💨 Smoke test"
         run: ./build/linux-amd64/aws-keyhub help | grep -q "login" || exit 1
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: aws-keyhub-pr-${{ github.event.pull_request.number }}
           path: release/*.zip
