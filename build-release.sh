@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
-set -x
+set -euxo pipefail
+
+cd "$(dirname "$0")"
 
 CMD_PKG='github.com/topicuskeyhub/aws-keyhub/cmd'
 GO_VERSION=$(go version | cut -c 14- | cut -d' ' -f1)
