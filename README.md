@@ -84,6 +84,16 @@ We have changed a number of commands in v2. Here is a mapping of the v1 commands
 | aws-keyhub --help            | aws-keyhub help             |
 |                              |                             |
 
+
+## Update dependencies procedure
+
+Below the steps to update dependencies of the tool
+
+1. mount this repo in a golang container `docker run --rm -it -v go-mod-cache:/go/pkg/mod -v $(pwd):/app -w /app golang:1.26 /bin/bash`
+2. Install zip: `apt update && apt install zip`
+3. Update dependencies: `go get -u && go mod tidy`
+
+
 ## Topicus Responsible Disclosure
 If you have found a weak spot in one of our systems, please let us know so that we can take measures as soon as possible.
 https://topicus.nl/disclosure
