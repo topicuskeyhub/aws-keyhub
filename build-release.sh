@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 
 CMD_PKG='github.com/topicuskeyhub/aws-keyhub/cmd'
 GO_VERSION=$(go version | cut -c 14- | cut -d' ' -f1)
-GIT_TAG=$(git describe --tags | cut -d- -f1)
+GIT_TAG=$(git describe --tags | cut -d- -f1) || true
 GIT_HASH=$(git rev-parse --short HEAD)
 
 LDFLAG="-X $CMD_PKG.GitHash=$GIT_HASH"
