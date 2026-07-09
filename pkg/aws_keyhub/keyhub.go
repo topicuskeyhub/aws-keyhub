@@ -93,9 +93,9 @@ func authorizeDevice() AuthorizeDeviceResponse {
 		logrus.Fatal("Device authorization failed; could not unmarshal JSON")
 	}
 
-	logrus.Debugln("KeyHub authorize device received confirmation code:", result.UserCode)
 	browser.OpenURL(result.VerificationUriComplete)
 	logrus.Infoln("If your browser did not open, please visit this url:", result.VerificationUriComplete)
+	logrus.Infoln("If KeyHub asks you to select a confirmation code, choose:", result.UserCode)
 
 	return result
 }
