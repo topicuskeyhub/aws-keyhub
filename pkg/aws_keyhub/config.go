@@ -2,12 +2,15 @@ package aws_keyhub
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
+	"strconv"
+	"strings"
 
 	"path/filepath"
 	"sync"
 
-	"github.com/AlecAivazis/survey/v2"
+	"github.com/charmbracelet/huh"
 	"github.com/sirupsen/logrus"
 )
 
@@ -16,53 +19,68 @@ var doOnceReadAwsKeyHubConfig sync.Once
 
 func ConfigureAwsKeyhub() {
 	logrus.Println("aws-keyhub configuration wizard, please provide the following the information:")
-	var questions = []*survey.Question{
-		{
-			Name:     "keyHubUrl",
-			Prompt:   &survey.Input{Message: "KeyHub url (e.g. https://keyhub.domain.tld)"},
-			Validate: survey.Required,
-		},
-		{
-			Name:     "keyHubClientId",
-			Prompt:   &survey.Input{Message: "KeyHub aws-keyhub client id (e.g. 00000000-0000-0000-0000-000000000000"},
-			Validate: survey.Required,
-		},
-		{
-			Name:     "keyHubAwsSamlClientId",
-			Prompt:   &survey.Input{Message: "KeyHub Resource URN for the AWS SAML connection (e.g. urn:tkh-clientid:urn:amazon:webservices)"},
-			Validate: survey.Required,
-		},
-		{
-			Name:     "assumeDuration",
-			Prompt:   &survey.Input{Message: "AWS assume role duration (in seconds, maximum value is 43200) ", Default: "43200"},
-			Validate: survey.Required,
-		},
-	}
-	answers := struct {
-		KeyHubUrl             string
-		KeyHubClientId        string
-		KeyHubAwsSamlClientId string
-		AssumeDuration        int32
-	}{}
+	var keyHubUrl, keyHubClientId, keyHubAwsSamlClientId string
+	assumeDuration := "43200"
 
-	err := survey.Ask(questions, &answers)
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewInput().
+				Title("KeyHub url (e.g. https://keyhub.domain.tld)").
+				Validate(required).
+				Value(&keyHubUrl),
+			huh.NewInput().
+				Title("KeyHub aws-keyhub client id (e.g. 00000000-0000-0000-0000-000000000000)").
+				Validate(required).
+				Value(&keyHubClientId),
+			huh.NewInput().
+				Title("KeyHub Resource URN for the AWS SAML connection (e.g. urn:tkh-clientid:urn:amazon:webservices)").
+				Validate(required).
+				Value(&keyHubAwsSamlClientId),
+			huh.NewInput().
+				Title("AWS assume role duration (in seconds, maximum value is 43200)").
+				Validate(validateAssumeDuration).
+				Value(&assumeDuration),
+		),
+	)
+
+	err := form.Run()
 	if err != nil {
 		logrus.Fatal("Failed to prompt user for configuration settings.", err)
 	}
 
+	duration, _ := strconv.ParseInt(strings.TrimSpace(assumeDuration), 10, 32)
+
 	config := KeyhubConfigFile{
 		Aws: KeyhubAwsConfig{
-			AssumeDuration: answers.AssumeDuration,
+			AssumeDuration: int32(duration),
 		},
 		Keyhub: KeyhubConfig{
-			Url:             answers.KeyHubUrl,
-			ClientId:        answers.KeyHubClientId,
-			AwsSamlClientId: answers.KeyHubAwsSamlClientId,
+			Url:             keyHubUrl,
+			ClientId:        keyHubClientId,
+			AwsSamlClientId: keyHubAwsSamlClientId,
 		},
 	}
 
 	logrus.Debugln(config)
 	writeConfig(config)
+}
+
+func required(value string) error {
+	if strings.TrimSpace(value) == "" {
+		return errors.New("value is required")
+	}
+	return nil
+}
+
+func validateAssumeDuration(value string) error {
+	duration, err := strconv.ParseInt(strings.TrimSpace(value), 10, 32)
+	if err != nil {
+		return errors.New("value must be a number")
+	}
+	if duration < 900 || duration > 43200 {
+		return errors.New("value must be between 900 and 43200")
+	}
+	return nil
 }
 
 type KeyhubConfigFile struct {
