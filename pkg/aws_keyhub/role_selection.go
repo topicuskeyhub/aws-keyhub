@@ -2,9 +2,11 @@ package aws_keyhub
 
 import (
 	"errors"
-	"github.com/AlecAivazis/survey/v2"
-	"github.com/sirupsen/logrus"
+	"slices"
 	"strings"
+
+	"github.com/charmbracelet/huh"
+	"github.com/sirupsen/logrus"
 )
 
 func SelectRoleAndPrincipal(roleArn string, rolesAndPrincipals map[string]RolesAndPrincipals) RolesAndPrincipals {
@@ -21,29 +23,28 @@ func SelectRoleAndPrincipal(roleArn string, rolesAndPrincipals map[string]RolesA
 }
 
 func promptForRole(rolesAndPrincipals map[string]RolesAndPrincipals) RolesAndPrincipals {
-	var options []string
+	var options []huh.Option[RolesAndPrincipals]
 	for value := range rolesAndPrincipals {
 		roleAndPrincipal := rolesAndPrincipals[value]
-		options = append(options, roleAndPrincipal.Role+" / "+roleAndPrincipal.Description)
+		options = append(options, huh.NewOption(roleAndPrincipal.Role+" / "+roleAndPrincipal.Description, roleAndPrincipal))
 	}
+	slices.SortFunc(options, func(a, b huh.Option[RolesAndPrincipals]) int {
+		return strings.Compare(a.Key, b.Key)
+	})
 
-	var selectedOption string
-	err := survey.AskOne(&survey.Select{
-		Message: "Choose a role",
-		Options: options,
-	}, &selectedOption)
-
-	logrus.Debugln("User selected option:", selectedOption)
+	var selected RolesAndPrincipals
+	err := huh.NewSelect[RolesAndPrincipals]().
+		Title("Choose a role").
+		Options(options...).
+		Filtering(true).
+		Value(&selected).
+		Run()
 	if err != nil {
 		logrus.Fatal("Failed to prompt user for role.", err)
 	}
 
-	rolesAndPrincipal, err := findRoleAndPrincipalByOption(selectedOption, rolesAndPrincipals)
-	if err != nil {
-		logrus.Fatal("Failed to find role and principal by role that the user selected in the prompt.", err)
-	}
-
-	return rolesAndPrincipal
+	logrus.Debugln("User selected role:", selected.Role)
+	return selected
 }
 
 func findRoleAndPrincipalByOption(selectedOption string, rolesAndPrincipals map[string]RolesAndPrincipals) (RolesAndPrincipals, error) {
