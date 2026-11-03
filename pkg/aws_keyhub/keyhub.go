@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cli/browser"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 )
@@ -93,7 +92,7 @@ func authorizeDevice() AuthorizeDeviceResponse {
 		logrus.Fatal("Device authorization failed; could not unmarshal JSON")
 	}
 
-	browser.OpenURL(result.VerificationUriComplete)
+	openURL(result.VerificationUriComplete)
 	logrus.Infoln("If your browser did not open, please visit this url:", result.VerificationUriComplete)
 	logrus.Infoln("If KeyHub asks you to select a confirmation code, choose:", result.UserCode)
 
