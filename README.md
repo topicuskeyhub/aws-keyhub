@@ -59,9 +59,17 @@ Your password is no longer stored in version 2 of this tool. It does store a ref
 The configuration is stored in ```~/.aws-keyhub/config-v2.json```
 
 #### Can I open the login link in a specific browser or browser profile?
-Yes, add an optional `browserCommand` to the `keyhub` section of the configuration file. `{url}` is replaced by the login link (it is appended as the last argument if omitted). The command is not run through a shell, so quoting is not supported. If the command fails, the default browser is used.
+Yes, add an optional `browserCommand` to the `keyhub` section of the configuration file. It is a JSON array: the first element is the executable, the rest are its arguments. Every `{url}` is replaced by the login link (the link is appended as the last argument if no element contains `{url}`). The command is not run through a shell, so each argument is its own element and paths with spaces need no quoting.
 ```json
-"browserCommand": "firefox -P myprofile --new-tab {url}"
+"browserCommand": ["firefox", "-P", "myprofile", "--new-tab", "{url}"]
+```
+On Windows, remember to escape backslashes in JSON:
+```json
+"browserCommand": ["C:\\Program Files\\Mozilla Firefox\\firefox.exe", "-P", "myprofile", "{url}"]
+```
+On macOS, use `open` to start an application with arguments:
+```json
+"browserCommand": ["open", "-na", "Firefox", "--args", "-P", "myprofile", "{url}"]
 ```
 Note that running `aws-keyhub configure` again rewrites the file and removes this setting.
 

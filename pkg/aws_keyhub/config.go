@@ -89,11 +89,11 @@ type KeyhubConfigFile struct {
 }
 
 type KeyhubConfig struct {
-	Url              string `json:"url"`
-	ClientId         string `json:"clientId"`
-	AwsSamlClientId  string `json:"awsSamlClientId"`
-	AllowInsecureTLS bool   `json:"allowInsecureTLS"` // We do not prompt for this flag, but it is configurable for development purposes.
-	BrowserCommand   string `json:"browserCommand"`   // Not prompted for either. Optional command used to open links, "{url}" is replaced by the link, e.g. "firefox -P myprofile --new-tab {url}".
+	Url              string   `json:"url"`
+	ClientId         string   `json:"clientId"`
+	AwsSamlClientId  string   `json:"awsSamlClientId"`
+	AllowInsecureTLS bool     `json:"allowInsecureTLS"` // We do not prompt for this flag, but it is configurable for development purposes.
+	BrowserCommand   []string `json:"browserCommand"`   // Not prompted for either. Optional command used to open links, "{url}" is replaced by the link, e.g. ["firefox", "-P", "myprofile", "{url}"].
 }
 
 type KeyhubAwsConfig struct {

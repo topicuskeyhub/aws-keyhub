@@ -7,12 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/cli/browser"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 )
@@ -100,32 +97,6 @@ func authorizeDevice() AuthorizeDeviceResponse {
 	logrus.Infoln("If KeyHub asks you to select a confirmation code, choose:", result.UserCode)
 
 	return result
-}
-
-// openURL opens the link using the configured browserCommand, falling back to the system default browser.
-func openURL(link string) {
-	command := strings.Fields(getAwsKeyHubConfig().Keyhub.BrowserCommand)
-	if len(command) > 0 {
-		hasPlaceholder := false
-		for i, arg := range command {
-			if strings.Contains(arg, "{url}") {
-				hasPlaceholder = true
-				command[i] = strings.ReplaceAll(arg, "{url}", link)
-			}
-		}
-		if !hasPlaceholder {
-			command = append(command, link)
-		}
-		logrus.Debugln("Opening browser using configured command:", command)
-		if err := exec.Command(command[0], command[1:]...).Start(); err == nil {
-			return
-		} else {
-			logrus.Warnln("Failed to run configured browserCommand, falling back to default browser.", err)
-		}
-	}
-	if err := browser.OpenURL(link); err != nil {
-		logrus.Debugln("Failed to open default browser.", err)
-	}
 }
 
 func DoLogin() TokenExchangeResponse {
