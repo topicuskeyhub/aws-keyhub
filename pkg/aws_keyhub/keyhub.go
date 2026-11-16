@@ -72,7 +72,7 @@ func authorizeDevice() AuthorizeDeviceResponse {
 		"scope":     {"profile"},
 		"client_id": {config.Keyhub.ClientId},
 	}
-	logrus.Debugln("KeyHub authorize device POST formdata: ", redactFormData(data))
+	logrus.Debugln("KeyHub authorize device POST formdata: ", data)
 	resp, err := httpClient.PostForm(config.Keyhub.Url+authorizeDevicePath, data)
 	if err != nil {
 		logrus.Fatal("Failed to post form data to KeyHub authorize device endpoint.", err)
@@ -86,12 +86,12 @@ func authorizeDevice() AuthorizeDeviceResponse {
 	if err != nil {
 		logrus.Fatal("Failed to read KeyHub authorize device response body", err)
 	}
-	logrus.Debugln("KeyHub authorize device response body:", redactJSONBody(body))
 
 	var result AuthorizeDeviceResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		logrus.Fatal("Device authorization failed; could not unmarshal JSON")
 	}
+	logrus.Debugf("KeyHub authorize device response: user_code=%s interval=%d expires_in=%d", result.UserCode, result.Interval, result.ExpiresIn)
 
 	browser.OpenURL(result.VerificationUriComplete)
 	logrus.Infoln("If your browser did not open, please visit this url:", result.VerificationUriComplete)
@@ -110,7 +110,7 @@ func DoLogin() TokenExchangeResponse {
 		removeInvalidOrExpiredRefreshTokenFile()
 	}
 
-	logrus.Debugln("TokenExchangeResponse from refresh token:", tokenExchangeResponse)
+	logrus.Debugln("Access token obtained using refresh token:", tokenExchangeResponse != nil)
 
 	if tokenExchangeResponse != nil {
 		return *tokenExchangeResponse
@@ -205,12 +205,12 @@ func submitTokenExchange(data url.Values) *http.Response {
 	config := getAwsKeyHubConfig()
 
 	tokenPath := "/login/oauth2/token"
-	logrus.Debugln("KeyHub token exchange POST formdata: ", redactFormData(data))
+	logrus.Debugln("KeyHub token exchange POST grant_type:", data.Get("grant_type"))
 	resp, err := httpClient.PostForm(config.Keyhub.Url+tokenPath, data)
 	if err != nil {
 		logrus.Fatal("Failed to post form data to KeyHub token endpoint.", err)
 	}
-	logrus.Debugln("KeyHub token exchange response:", describeResponse(resp))
+	logrus.Debugln("KeyHub token exchange response status:", resp.Status)
 	return resp
 }
 
@@ -244,12 +244,13 @@ func handleTokenExchangeSuccessResponse(resp *http.Response, shouldStoreRefreshT
 	if err != nil {
 		logrus.Fatal("Failed to read KeyHub token exchange response body", err)
 	}
-	logrus.Debugln("KeyHub token exchange response body:", redactJSONBody(body))
 
 	var result TokenExchangeResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		logrus.Fatal("KeyHub token exchange failed; could not unmarshal JSON")
 	}
+	logrus.Debugf("KeyHub token exchange response: token_type=%s issued_token_type=%s expires_in=%d refresh_token_present=%t",
+		result.TokenType, result.IssuedTokenType, result.ExpiresIn, result.RefreshToken != nil)
 
 	if shouldStoreRefreshToken && result.RefreshToken != nil {
 		storeRefreshToken(result)

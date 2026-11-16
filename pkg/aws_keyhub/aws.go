@@ -33,7 +33,10 @@ func StsAssumeRoleWithSAML(context context.Context, principalArn string, roleArn
 	if err != nil {
 		logrus.Fatal("AWS STS AssumeRoleWithSAML failed:", err)
 	}
-	logrus.Debugln("AWS STS AssumeRoleWithSAML result:", result)
+	if result.AssumedRoleUser != nil && result.Credentials != nil {
+		logrus.Debugf("AWS STS AssumeRoleWithSAML assumed role %s, credentials expire at %s",
+			aws.ToString(result.AssumedRoleUser.Arn), aws.ToTime(result.Credentials.Expiration))
+	}
 	return result
 }
 
