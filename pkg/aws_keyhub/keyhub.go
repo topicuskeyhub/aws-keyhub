@@ -210,7 +210,7 @@ func submitTokenExchange(data url.Values) *http.Response {
 	if err != nil {
 		logrus.Fatal("Failed to post form data to KeyHub token endpoint.", err)
 	}
-	logrus.Debugln("KeyHub token exchange response status:", resp.Status)
+	logrus.Debugln("KeyHub token exchange response:", describeResponse(resp))
 	return resp
 }
 

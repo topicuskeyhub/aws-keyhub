@@ -2,6 +2,7 @@ package aws_keyhub
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"testing"
@@ -98,5 +99,32 @@ func TestRefreshTokenFileAndAuthorizeDeviceResponseString(t *testing.T) {
 		if strings.Contains(out, secret) {
 			t.Errorf("logged struct contains secret: %s", out)
 		}
+	}
+}
+
+func TestDescribeResponse(t *testing.T) {
+	resp := &http.Response{
+		Status:        "200 OK",
+		Proto:         "HTTP/1.1",
+		ContentLength: 42,
+		Header: http.Header{
+			"Content-Type": {"application/json"},
+			"X-Request-Id": {"abc-123"},
+			"Set-Cookie":   {"session=" + secret},
+		},
+	}
+
+	out := describeResponse(resp)
+
+	if strings.Contains(out, secret) {
+		t.Errorf("response description contains secret: %s", out)
+	}
+	for _, expected := range []string{"200 OK", "HTTP/1.1", "ContentLength:42", "application/json", "abc-123", "Set-Cookie:[[REDACTED]]"} {
+		if !strings.Contains(out, expected) {
+			t.Errorf("expected %s in response description: %s", expected, out)
+		}
+	}
+	if resp.Header.Get("Set-Cookie") != "session="+secret {
+		t.Error("original headers must not be modified")
 	}
 }

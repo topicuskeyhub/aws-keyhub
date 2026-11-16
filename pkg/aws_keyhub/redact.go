@@ -3,6 +3,7 @@ package aws_keyhub
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 )
@@ -18,6 +19,14 @@ var sensitiveKeys = map[string]bool{
 	"device_code":   true,
 	"code":          true,
 	"client_secret": true,
+}
+
+// sensitiveHeaders lists HTTP headers (canonical form) whose values must never be written to (debug) output.
+var sensitiveHeaders = map[string]bool{
+	"Authorization":       true,
+	"Proxy-Authorization": true,
+	"Cookie":              true,
+	"Set-Cookie":          true,
 }
 
 // isSensitiveKey matches case-insensitively, like encoding/json does when mapping JSON properties to struct fields.
@@ -48,6 +57,30 @@ func redactFormData(data url.Values) url.Values {
 		redacted[key] = copied
 	}
 	return redacted
+}
+
+// redactHeaders returns a copy of the headers with all sensitive values masked.
+func redactHeaders(headers http.Header) http.Header {
+	redacted := make(http.Header, len(headers))
+	for key, values := range headers {
+		copied := make([]string, len(values))
+		for i, value := range values {
+			if sensitiveHeaders[http.CanonicalHeaderKey(key)] {
+				copied[i] = redact(value)
+			} else {
+				copied[i] = value
+			}
+		}
+		redacted[key] = copied
+	}
+	return redacted
+}
+
+// describeResponse summarizes an HTTP response for debug output without exposing credentials.
+// The body is left out because it is read and logged (redacted) separately.
+func describeResponse(resp *http.Response) string {
+	return fmt.Sprintf("{Status:%s Proto:%s ContentLength:%d Header:%v}",
+		resp.Status, resp.Proto, resp.ContentLength, redactHeaders(resp.Header))
 }
 
 // redactJSONBody returns the JSON body as a string with all sensitive top-level properties masked.
