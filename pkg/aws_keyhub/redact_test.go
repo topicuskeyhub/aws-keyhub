@@ -49,6 +49,20 @@ func TestRedactJSONBody(t *testing.T) {
 	}
 }
 
+func TestRedactJSONBodyMixedCaseKeys(t *testing.T) {
+	out := redactJSONBody([]byte(`{"Access_Token":"` + secret + `","REFRESH_TOKEN":"` + secret + `"}`))
+	if strings.Contains(out, secret) {
+		t.Errorf("mixed-case keys must be redacted: %s", out)
+	}
+}
+
+func TestRedactFormDataMixedCaseKeys(t *testing.T) {
+	out := fmt.Sprint(redactFormData(url.Values{"Refresh_Token": {secret}}))
+	if strings.Contains(out, secret) {
+		t.Errorf("mixed-case keys must be redacted: %s", out)
+	}
+}
+
 func TestRedactJSONBodyNotJSON(t *testing.T) {
 	out := redactJSONBody([]byte("access_token=" + secret))
 	if strings.Contains(out, secret) {

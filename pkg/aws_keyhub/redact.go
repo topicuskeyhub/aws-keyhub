@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 const redactedValue = "[REDACTED]"
@@ -17,6 +18,11 @@ var sensitiveKeys = map[string]bool{
 	"device_code":   true,
 	"code":          true,
 	"client_secret": true,
+}
+
+// isSensitiveKey matches case-insensitively, like encoding/json does when mapping JSON properties to struct fields.
+func isSensitiveKey(key string) bool {
+	return sensitiveKeys[strings.ToLower(key)]
 }
 
 // redact masks a sensitive value. An empty value stays empty so debug output still shows whether a value was present.
@@ -33,7 +39,7 @@ func redactFormData(data url.Values) url.Values {
 	for key, values := range data {
 		copied := make([]string, len(values))
 		for i, value := range values {
-			if sensitiveKeys[key] {
+			if isSensitiveKey(key) {
 				copied[i] = redact(value)
 			} else {
 				copied[i] = value
@@ -52,7 +58,7 @@ func redactJSONBody(body []byte) string {
 		return fmt.Sprintf("[unparsable body of %d bytes not shown]", len(body))
 	}
 	for key, value := range parsed {
-		if !sensitiveKeys[key] {
+		if !isSensitiveKey(key) {
 			continue
 		}
 		if s, ok := value.(string); ok {
