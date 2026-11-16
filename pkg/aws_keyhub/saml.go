@@ -14,7 +14,8 @@ func DecodeSAMLResponse(samlResponse string) []byte {
 		logrus.Fatal("Failed to decode SAML Response from KeyHub.", err)
 	}
 
-	logrus.Debugln("Decoded SAML Response", string(decoded))
+	// The SAML assertion is a bearer credential for AssumeRoleWithSAML, so its contents are not logged.
+	logrus.Debugf("Decoded SAML Response (%d bytes)", len(decoded))
 	return decoded
 }
 

@@ -72,7 +72,7 @@ func authorizeDevice() AuthorizeDeviceResponse {
 		"scope":     {"profile"},
 		"client_id": {config.Keyhub.ClientId},
 	}
-	logrus.Debugln("KeyHub authorize device POST formdata: ", data)
+	logrus.Debugln("KeyHub authorize device POST formdata: ", redactFormData(data))
 	resp, err := httpClient.PostForm(config.Keyhub.Url+authorizeDevicePath, data)
 	if err != nil {
 		logrus.Fatal("Failed to post form data to KeyHub authorize device endpoint.", err)
@@ -86,7 +86,7 @@ func authorizeDevice() AuthorizeDeviceResponse {
 	if err != nil {
 		logrus.Fatal("Failed to read KeyHub authorize device response body", err)
 	}
-	logrus.Debugln("KeyHub authorize device response body:", string(body))
+	logrus.Debugln("KeyHub authorize device response body:", redactJSONBody(body))
 
 	var result AuthorizeDeviceResponse
 	if err := json.Unmarshal(body, &result); err != nil {
@@ -205,12 +205,12 @@ func submitTokenExchange(data url.Values) *http.Response {
 	config := getAwsKeyHubConfig()
 
 	tokenPath := "/login/oauth2/token"
-	logrus.Debugln("KeyHub token exchange POST formdata: ", data)
+	logrus.Debugln("KeyHub token exchange POST formdata: ", redactFormData(data))
 	resp, err := httpClient.PostForm(config.Keyhub.Url+tokenPath, data)
 	if err != nil {
 		logrus.Fatal("Failed to post form data to KeyHub token endpoint.", err)
 	}
-	logrus.Debugln("KeyHub token exchange response:", resp)
+	logrus.Debugln("KeyHub token exchange response status:", resp.Status)
 	return resp
 }
 
@@ -244,7 +244,7 @@ func handleTokenExchangeSuccessResponse(resp *http.Response, shouldStoreRefreshT
 	if err != nil {
 		logrus.Fatal("Failed to read KeyHub token exchange response body", err)
 	}
-	logrus.Debugln("KeyHub token exchange response body:", string(body))
+	logrus.Debugln("KeyHub token exchange response body:", redactJSONBody(body))
 
 	var result TokenExchangeResponse
 	if err := json.Unmarshal(body, &result); err != nil {
