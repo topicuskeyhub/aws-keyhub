@@ -1,0 +1,50 @@
+# Maintainer: Willmar Knikker <Willmar.Knikker@topicus.nl>
+#
+# To update for a new release:
+#   1. Set pkgver to the new tag (without the leading "v") and reset pkgrel=1
+#   2. Run `updpkgsums` to refresh sha256sums
+#   3. Run `makepkg --printsrcinfo > .SRCINFO`
+#   4. Test with `makepkg -f` (or `pkgctl build` for a clean chroot)
+
+pkgname=aws-keyhub
+pkgver=2.15.0
+pkgrel=1
+pkgdesc='CLI login helper for the AWS CLI using SAML federated login with Topicus KeyHub'
+arch=('x86_64' 'aarch64')
+url='https://github.com/topicuskeyhub/aws-keyhub'
+license=('Apache-2.0')
+depends=('glibc')
+makedepends=('go')
+optdepends=('aws-cli-v2: use the generated credentials with the AWS CLI')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('f08999ee749a374602adf376382b4caff1ee56ee008c43c0a55207c705a00f44')
+options=('!debug')
+
+prepare() {
+  cd "$pkgname-$pkgver"
+  go mod download -x
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  local cmd_pkg='github.com/topicuskeyhub/aws-keyhub/cmd'
+  local go_version
+  go_version=$(go env GOVERSION)
+
+  export CGO_CPPFLAGS="${CPPFLAGS}"
+  export CGO_CFLAGS="${CFLAGS}"
+  export CGO_CXXFLAGS="${CXXFLAGS}"
+  export CGO_LDFLAGS="${LDFLAGS}"
+  export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
+
+  go build \
+    -ldflags "-linkmode external -X $cmd_pkg.GitTag=v$pkgver -X $cmd_pkg.GoVersion=$go_version" \
+    -o build/ .
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  install -Dm755 build/aws-keyhub -t "$pkgdir/usr/bin/"
+  install -Dm644 README.md -t "$pkgdir/usr/share/doc/$pkgname/"
+  install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname/"
+}

@@ -1,0 +1,15 @@
+pkgbase = aws-keyhub
+	pkgdesc = CLI login helper for the AWS CLI using SAML federated login with Topicus KeyHub
+	pkgver = 2.15.0
+	pkgrel = 1
+	url = https://github.com/topicuskeyhub/aws-keyhub
+	arch = x86_64
+	arch = aarch64
+	license = Apache-2.0
+	makedepends = go
+	depends = glibc
+	optdepends = aws-cli-v2: use the generated credentials with the AWS CLI
+	source = aws-keyhub-2.15.0.tar.gz::https://github.com/topicuskeyhub/aws-keyhub/archive/v2.15.0.tar.gz
+	sha256sums = f08999ee749a374602adf376382b4caff1ee56ee008c43c0a55207c705a00f44
+
+pkgname = aws-keyhub

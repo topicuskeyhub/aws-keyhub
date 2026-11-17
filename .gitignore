@@ -119,3 +119,9 @@ $RECYCLE.BIN/
 
 aws-keyhub
 release/*
+
+# Arch Linux packaging artifacts
+contrib/arch/src/
+contrib/arch/pkg/
+contrib/arch/*.pkg.tar.*
+contrib/arch/*.tar.gz
