@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# End-to-end test van de `browserCommand` instelling (keyhub.browserCommand in config-v2.json).
+# End-to-end test of the `browserCommand` setting (keyhub.browserCommand in config-v2.json).
 #
-# Draait `aws-keyhub login` tegen een nep-KeyHub (lokale python HTTP server) met een tijdelijke HOME,
-# zodat de echte configuratie van de gebruiker niet wordt aangeraakt. De "browser" is een logscript dat
-# elk ontvangen argument als [arg] wegschrijft; de systeem-default browser (xdg-open) wordt vervangen
-# door een logscript dat "DEFAULT [url]" schrijft.
+# Runs `aws-keyhub login` against a fake KeyHub (local python HTTP server) with a temporary HOME,
+# so the user's real configuration is never touched. The "browser" is a logging script that writes
+# every received argument as [arg]; the system default browser (xdg-open) is replaced by a logging
+# script that writes "DEFAULT [url]".
 #
-# Gebruik: test-browser-command.sh [pad/naar/aws-keyhub]   (default: ./build/linux-amd64/aws-keyhub)
-# Exit code 0 als alle scenario's slagen, anders 1.
+# Usage: test-browser-command.sh [path/to/aws-keyhub]   (default: ./build/linux-amd64/aws-keyhub)
+# Exits with code 0 when all scenarios pass, 1 otherwise.
 set -u
 
 BIN=$(readlink -f "${1:-./build/linux-amd64/aws-keyhub}")
-[ -x "$BIN" ] || { echo "Binary niet gevonden: $BIN" >&2; exit 1; }
-command -v python3 >/dev/null || { echo "python3 is vereist" >&2; exit 1; }
+[ -x "$BIN" ] || { echo "Binary not found: $BIN" >&2; exit 1; }
+command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
 
 WORK=$(mktemp -d)
 trap 'kill $SERVER_PID 2>/dev/null; rm -rf "$WORK"' EXIT
@@ -38,7 +38,7 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         body = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode()
         if self.path.endswith("/authorizedevice"):
-            # Unieke device_code per login, zodat het poll-teller per scenario opnieuw begint.
+            # Unique device_code per login, so the poll counter restarts for every scenario.
             dev = "dev%d" % len(polls); polls[dev] = 0
             self.send(200, {"user_code": "ABCD", "device_code": dev, "interval": 1,
                             "verification_uri_complete": "http://127.0.0.1:%d/verify?code=ABCD&x=1" % PORT,
@@ -46,7 +46,7 @@ class H(BaseHTTPRequestHandler):
             return
         dev = next((p.split("=", 1)[1] for p in body.split("&") if p.startswith("device_code=")), "")
         polls[dev] = polls.get(dev, 0) + 1
-        # Twee keer "pending" zodat een falend browserCommand tijd heeft om naar de default terug te vallen.
+        # Answer "pending" twice so a failing browserCommand has time to fall back to the default browser.
         if polls[dev] < 3:
             self.send(400, {"error": "authorization_pending", "error_description": "pending"})
         else:
@@ -74,7 +74,7 @@ SERVER_PID=$!
 sleep 0.5
 
 FAILED=0
-# scenario <naam> <browserCommand-json> <verwachte browser-log (regels gescheiden door \n)> [verwachte tekst in output]
+# scenario <name> <browserCommand-json> <expected browser log (lines separated by \n)> [expected text in output]
 scenario() {
   local name=$1 bc=$2 expected=$3 expected_out=${4:-}
   local home="$WORK/home-$name"
@@ -101,9 +101,9 @@ scenario() {
     FAILED=1
     echo "FAIL  $name"
     echo "  browserCommand: $bc"
-    echo "  verwacht log:   $(printf "$expected" | tr '\n' '|')"
-    echo "  werkelijk log:  $(tr '\n' '|' <<<"$actual")"
-    [ -z "$expected_out" ] || echo "  verwachte output bevat: $expected_out"
+    echo "  expected log:   $(printf "$expected" | tr '\n' '|')"
+    echo "  actual log:     $(tr '\n' '|' <<<"$actual")"
+    [ -z "$expected_out" ] || echo "  expected output to contain: $expected_out"
     echo "  output:"; sed 's/^/    /' <<<"$out"
   fi
 }
